@@ -8,14 +8,15 @@ Created on Sun Mar 21 21:57:33 2021
 
 Starter class for pyOCPI test
 """
-
+import requests
 import json
 import os
 import logging
 from ocpi import createOcpiBlueprint
 import ocpi.managers as om
-from flask import Flask, redirect
+from ocpi.namespaces import SingleCredMan
 
+from flask import Flask, redirect, request
 
 logging.basicConfig(level=logging.DEBUG)
 log = logging.getLogger('ocpi')
@@ -25,11 +26,15 @@ app.config['RESTX_MASK_SWAGGER'] = False
 
 port=os.getenv('PORT', 9001)
 url_prefix=os.getenv('URL_PREFIX', "/ocpi/emsp")
-HOST_URL = os.getenv('HOST_URL', "http://localhost:5000")+url_prefix
+HOST_URL = os.getenv('HOST_URL', f"http://localhost:{port}")+url_prefix
 
-@app.route('/', methods=['POST', 'GET'])
-def home():
-    return redirect(f"{url_prefix}/ui")
+@app.route(f"{url_prefix}", methods=['GET'])
+def versions():
+    log.info(f"getting home/")
+    r= requests.get(f"{request.base_url}versions") if request.base_url[-1]=="/" else requests.get(f"{request.base_url}/versions")
+    return r.json()
+# def home():
+#     return redirect(f"{url_prefix}/ui")
 
 
 # country_code, party_id and role is "username"
@@ -53,7 +58,7 @@ cred_roles = [{
 # inject dependencies here
 # must have expected method signatures
 #ses = om.SessionManager()
-#loc = om.LocationManager()
+loc = om.LocationManager()
 #commands = om.CommandsManager()
 #reservations = om.ReservationManager()
 # TODO maybe provide interface and inject with decorator..?
@@ -61,8 +66,9 @@ cm = om.CredentialsDictMan(cred_roles, HOST_URL)
 
 
 injected_objects = {
+    'internal': {'role': 'RECEIVER', 'object': None},
     'credentials': {'role': 'SENDER', 'object': cm},
-    #'locations': {'role': 'SENDER', 'object': loc},
+    'locations': {'role': 'RECEIVER', 'object': loc},
     #'commands': {'role': 'SENDER', 'object': commands},
     #'sessions': {'role': 'SENDER', 'object': ses},
     #'reservations': {'role': 'SENDER', 'object': reservations},
@@ -80,22 +86,6 @@ if os.path.exists(config):
     
     client_url = conf.get('client_url', None)
     endpoints = None
-    if client_url:
-        try:
-            endpoints = cm._getEndpoints(client_url,client_version=conf["version"],access_client=conf['client_token'])
-        except Exception as e:
-            log.error(e)
-    cm._updateToken(conf['token'], 
-                    client_url, 
-                    conf.get('client_token'),
-                    endpoints)
-    #cm.credentials_roles[0]['business_details']['name'] = conf['name']
-    #cm.credentials_roles[0]['party_id'] = conf['party_id']
-    #cm.credentials_roles[0]['country_code'] = conf['country_code']
-    try:
-        cm._sendRegisterResponse(url=client_url,version=conf["version"],token=conf["token"],access_client=conf['client_token'])
-    except Exception as e:
-        log.error(e)
 else:
     log.info(f'config file {config} does not exist')
     cm._updateToken('TESTTOKEN', None, None)
@@ -103,6 +93,8 @@ else:
 blueprint = createOcpiBlueprint(
     HOST_URL, injected_objects, url_prefix=url_prefix)
 app.register_blueprint(blueprint)
+app.url_map.strict_slashes=False
 
 if __name__ == '__main__':
-    app.run(host="0.0.0.0", port=port)
+    app.run(port=port)
+

@@ -6,4 +6,4 @@ pyocpi.egg-info
 dist
 .vscode/
 
-ocpi.json
+ocpi*.json

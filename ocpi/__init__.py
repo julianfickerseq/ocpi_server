@@ -18,8 +18,9 @@ from flask_restx import Api
 
 from ocpi.managers import VersionManager
 from ocpi.namespaces import SingleCredMan
+from ocpi.namespaces.internal import internal_ns
 from ocpi.namespaces.credentials import credentials_ns
-#from ocpi.namespaces.locations import makeLocationNamespace
+from ocpi.namespaces.locations import makeLocationNamespace
 from ocpi.namespaces.versions import versions_ns
 
 log = logging.getLogger("ocpi")
@@ -34,7 +35,7 @@ injected = {
 }
 
 
-def createOcpiBlueprint(base_url, injected_objects=injected, ocpi_version="2.2",url_prefix:str="/ocpi"):
+def createOcpiBlueprint(base_url, injected_objects=injected, ocpi_version="2.1.1",url_prefix:str="/ocpi"):
     """
     Creates API blueprint with injected Objects.
     Must contain a sessionmanager and others.
@@ -71,7 +72,8 @@ def createOcpiBlueprint(base_url, injected_objects=injected, ocpi_version="2.2",
     SingleCredMan.setInstance(injected_objects["credentials"]["object"])
 
     ns_dict = {
-        #"locations": makeLocationNamespace,
+        "internal": lambda x: internal_ns,
+        "locations": makeLocationNamespace,
         "credentials": lambda x: credentials_ns,
         "versions": lambda x: versions_ns,
         # "commands": makeCommandsNamespace,

@@ -20,6 +20,8 @@ from ocpi.namespaces import (
     make_response,
     token_required,
 )
+import logging
+log = logging.getLogger("ocpi")
 
 credentials_ns = Namespace(name="credentials", validate=True)
 add_models_to_credentials_namespace(credentials_ns)
@@ -27,7 +29,7 @@ parser = get_header_parser(credentials_ns)
 
 
 @credentials_ns.route("/", doc={"description": "API Endpoint for Session management"})
-@credentials_ns.response(405, "method not allowed")
+@credentials_ns.response(405, "method not allowed") 
 @credentials_ns.response(401, "unauthorized")
 class credentials(Resource):
     def __init__(self, api=None, *args, **kwargs):
@@ -41,26 +43,27 @@ class credentials(Resource):
         """
         request the credentials object if authenticated
         """
+        log.info(f"getting credentials details")
         decodedToken = _check_access_token()
         return make_response(self.credentials_manager.getCredentials, decodedToken)
 
-    # @token_required
-    # @credentials_ns.marshal_with(resp(credentials_ns, Credentials))
-    # @credentials_ns.expect(parser, Credentials)
-    # # def post(self):
-    #     """
-    #     Get new Token, request Sender Token and reply with Token C (for first time auth)
-    #     """
-    #     try:
-
-    #         decodedToken = _check_access_token()
-    #     except Exception:
-    #         raise BadRequest("Authorization Header must be base64 encoded")
-    #     return make_response(
-    #         self.credentials_manager.makeRegistration,
-    #         credentials_ns.payload,
-    #         decodedToken,
-    #     )
+    @token_required
+    @credentials_ns.marshal_with(resp(credentials_ns, Credentials))
+    @credentials_ns.expect(parser, Credentials)
+    def post(self):
+        log.info(f"get new credential")
+        """
+        Get new Token, request Sender Token and reply with Token C (for first time auth)
+        """
+        try:
+            decodedToken = _check_access_token()
+        except Exception:
+            raise BadRequest("Authorization Header must be base64 encoded")
+        return make_response(
+            self.credentials_manager.makeRegistration,
+            credentials_ns.payload,
+            decodedToken,
+        )
 
     @token_required
     @credentials_ns.marshal_with(resp(credentials_ns, Credentials))
@@ -69,6 +72,7 @@ class credentials(Resource):
         """
         replace registration Token for version update
         """
+        log.info(f"put credential")
         decodedToken = _check_access_token()
         return make_response(
             self.credentials_manager.versionUpdate, credentials_ns.payload, decodedToken
@@ -80,5 +84,6 @@ class credentials(Resource):
         """
         unregisters from server
         """
+        log.info(f"delete credential")
         decodedToken = _check_access_token()
         return make_response(self.credentials_manager.unregister, decodedToken)

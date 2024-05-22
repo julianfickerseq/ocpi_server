@@ -91,7 +91,7 @@ def get_header_parser(namespace):
 def make_response(function, *args, **kwargs):
     headers = None
     http_code = 200
-    status_message = "OK"
+    #status_message = "OK"
     status_code = 1000
     data = []
     try:
@@ -101,17 +101,17 @@ def make_response(function, *args, **kwargs):
         else:
             data = result
     except oe.OcpiError as e:
-        status_message = e.message
+        #status_message = e.message
         status_code = e.status_code
     except Exception as e:
-        status_message = f"Error {e}"
+        #status_message = f"Error {e}"
         status_code = 3000
 
     return (
         {
             "data": data,
             "status_code": status_code,
-            "status_message": status_message,
+            #"status_message": status_message,
             "timestamp": datetime.now(),
         },
         http_code,

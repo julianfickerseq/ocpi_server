@@ -37,7 +37,7 @@ class CredentialsManager:
         self.url = url
         super().__init__(**kwds)
 
-    def _getEndpoints(self, client_url, client_version="2.2",access_client=None):
+    def _getEndpoints(self, client_url, client_version="2.1.1",access_client=None):
         endpoints = []
         header = createOcpiHeader(access_client)
         try:
@@ -52,8 +52,15 @@ class CredentialsManager:
         return endpoints
 
     def _sendRegisterResponse(self, url, version, token, access_client):
-        data = {"token": token, "url": self.url, "roles": self.credentials_roles}
+        data = {
+            "token": token, 
+            "url": self.url, 
+            "business_details": self.credentials_roles[0]["business_details"],
+            "party_id": self.credentials_roles[0]["party_id"],
+            "country_code": self.credentials_roles[0]["country_code"],
+            }
         header = createOcpiHeader(access_client)
+        log.info(f"sending post request {data}")
         resp = requests.post(f"{url}/{version}/credentials", json=data, headers=header)
         if resp.status_code == 405:
             resp = requests.put(
@@ -239,51 +246,6 @@ class LocationManager(object):
         self.locations[location_id][evse_id][connector_id].update(connector)
 
 
-class CommandsManager(object):
-    def __init__(self):
-        self.log = {}
-
-    def startSession(self, session_info, token):
-        log.debug("start sessions")
-        pass
-
-    def stopSession(self, session_info, token):
-        log.debug("stop sessions")
-        pass
-
-    def unlockConnector(self, session_info, token):
-        log.debug("unlock connector")
-        pass
-
-    def cancelReservation(self, session_info, token):
-        log.debug("cancel reservation")
-        pass
-
-    def reserveNow(self, session_info, token):
-        log.debug("reserve now")
-        pass
-
-    def startSessionResult(self, session_info, token):
-        log.debug("start sessions result")
-        pass
-
-    def stopSessionResult(self, session_info, token):
-        log.debug("stop sessions result")
-        pass
-
-    def unlockConnectorResult(self, session_info, token):
-        log.debug("unlock connector result")
-        pass
-
-    def cancelReservationResult(self, session_info, token):
-        log.debug("cancel reservation result")
-        pass
-
-    def reserveNowResult(self, session_info, token):
-        log.debug("reserve now result")
-        pass
-
-
 class VersionManager:
     def __init__(self, base_url, endpoints: dict, ocpi_version="2.2"):
         self._base_url = base_url
@@ -295,22 +257,21 @@ class VersionManager:
     def _makeDetails(self, endpoints):
         res = []
         for ep_name, role in endpoints.items():
-            e = {}
-            e["identifier"] = ep_name
-            e["role"] = role
-            e["url"] = f"{self._base_url}/{self._ocpi_version}/{ep_name}"
-            res.append(e)
+            if ep_name!="internal":
+                e = {}
+                e["identifier"] = ep_name
+                e["role"] = role
+                e["url"] = f"{self._base_url}/{self._ocpi_version}/{ep_name}"
+                res.append(e)
         return res
 
     def versions(self):
-        return {
-            "versions": [
+        return [
                 {
                     "version": self._ocpi_version,
                     "url": self._base_url + "/" + self._ocpi_version,
                 }
             ]
-        }
 
     def details(self):
         return {"version": self._ocpi_version, "endpoints": self._details}

@@ -11,7 +11,7 @@ def respRaw(namespace, model):
         {
             "data": model,
             "status_code": fields.Integer(required=True),
-            "status_message": fields.String(),
+            #"status_message": fields.String(),
             "timestamp": fields.DateTime(required=True),
         },
     )
@@ -27,7 +27,7 @@ def resp(namespace, model):
         {
             "data": fields.Nested(model),
             "status_code": fields.Integer(required=True),
-            "status_message": fields.String(),
+            #"status_message": fields.String(),
             "timestamp": fields.DateTime(required=True),
         },
     )
@@ -43,7 +43,7 @@ def respList(namespace, model):
         {
             "data": fields.List(fields.Nested(model)),
             "status_code": fields.Integer(required=True),
-            "status_message": fields.String(),
+            #"status_message": fields.String(),
             "timestamp": fields.DateTime(required=True),
         },
     )

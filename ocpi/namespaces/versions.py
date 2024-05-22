@@ -10,17 +10,20 @@ from __future__ import annotations
 
 from flask_restx import Namespace, Resource
 
-from ocpi.models import resp
+from ocpi.models import resp, respList
 from ocpi.models.version import (
+    Version,
     VersionDetailsData,
-    VersionsData,
     add_models_to_version_namespace,
 )
 from ocpi.namespaces import get_header_parser, make_response
+import logging
+log = logging.getLogger("ocpi")
 
 versions_ns = Namespace(name="versions", validate=True)
 add_models_to_version_namespace(versions_ns)
 header_parser = get_header_parser(versions_ns)
+
 
 
 @versions_ns.route(
@@ -31,13 +34,14 @@ class get_versions(Resource):
         self.versionsmanager = kwargs["versions"]
         super().__init__(api, *args, **kwargs)
 
-    @versions_ns.marshal_with(resp(versions_ns, VersionsData))
+    @versions_ns.marshal_with(respList(versions_ns, Version))
     def get(self):
+        log.info(f"getting versions")
         return make_response(self.versionsmanager.versions)
 
 
 # TODO flexible version number for OCPI 3.x
-@versions_ns.route("2.2", doc={"description": "API Endpoint for Version details"})
+@versions_ns.route("2.1.1", doc={"description": "API Endpoint for Version details"})
 class get_details(Resource):
     def __init__(self, api=None, *args, **kwargs):
         self.versionsmanager = kwargs["versions"]
@@ -48,5 +52,5 @@ class get_details(Resource):
         """
         Get Version Details
         """
-
+        log.info(f"getting versions details")
         return make_response(self.versionsmanager.details)

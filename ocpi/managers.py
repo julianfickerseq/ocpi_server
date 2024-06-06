@@ -13,6 +13,7 @@ import logging
 import os
 import secrets
 from multiprocessing import RLock
+import copy
 
 import requests
 
@@ -210,40 +211,69 @@ class CredentialsDictMan(CredentialsManager):
 class LocationManager(object):
     def __init__(self):
         self.locations = {}
+    
+    def populateEvses(self, location_id, evses):
+        self.locations[location_id]["evses"]={}
+        for evse in evses:
+            self.locations[location_id]["evses"][evse["uid"]]=evse
+            self.populateConnectors(location_id, evse["uid"],evse["connectors"].copy())
+
+    def translateEvses(self, location):
+        for evse_id,evse in location["evses"].items():
+            location["evses"][evse_id]=self.translateConnectors(evse)
+        location["evses"]=list(location["evses"].values())
+        return location
+
+    def populateConnectors(self, location_id, evse_id, connectors):
+        self.locations[location_id]["evses"][evse_id]["connectors"]={}
+        for connector in connectors:
+            self.locations[location_id]["evses"][evse_id]["connectors"][connector["id"]]=connector
+    
+    def translateConnectors(self, evse):
+        evse["connectors"]=list(evse["connectors"].values())
+        return evse
 
     def getLocations(self, begin, end, offset, limit):
+        log.info(f"getting locations")
         return list(self.locations.values())[offset : offset + limit], {}
 
     def getLocation(self, country_id, party_id, location_id):
-        return self.locations[location_id]
+        log.info(f"getting location {location_id}")
+        return self.translateEvses(self.locations[location_id].copy())
 
     def putLocation(self, country_id, party_id, location_id, location):
+        log.info(f"putting location: {location}")
         self.locations[location_id] = location
-
+        self.populateEvses(location_id, location["evses"].copy())
+        
     def patchLocation(self, country_id, party_id, location_id, location):
+        log.info(f"patching location: {location}")
         self.locations[location_id].update(location)
 
     def getEVSE(self, country_id, party_id, location_id, evse_id):
-        return self.locations[location_id]
+        log.info(f"getting evse {location_id}/{evse_id}")
+        return self.translateConnectors(self.locations[location_id]["evses"][evse_id].copy())
 
     def putEVSE(self, country_id, party_id, location_id, evse_id, evse):
-        self.locations[location_id][evse_id] = evse
+        log.info(f"putting evse {location_id}/{evse_id}: {evse}")
+        self.locations[location_id]["evses"][evse_id] = evse
+        self.populateConnectors(location_id, evse_id, evse["connectors"].copy())
 
     def patchEVSE(self, country_id, party_id, location_id, evse_id, evse):
-        self.locations[location_id][evse_id].update(evse)
+        log.info(f"patching evse {location_id}/{evse_id}: {evse}")
+        self.locations[location_id]["evses"][evse_id].update(evse)
 
     def getConnector(self, country_id, party_id, location_id, evse_id, connector_id):
-        return self.locations[location_id][evse_id][connector_id]
+        log.info(f"getting connector {location_id}/{evse_id}/{connector_id}")
+        return self.locations[location_id]["evses"][evse_id]["connectors"][connector_id]
 
-    def putConnector(
-        self, country_id, party_id, location_id, evse_id, connector_id, connector
-    ):
-        self.locations[location_id][evse_id][connector_id] = connector
+    def putConnector(self, country_id, party_id, location_id, evse_id, connector_id, connector):
+        log.info(f"putting connector {location_id}/{evse_id}/{connector_id}: {connector}")
+        self.locations[location_id]["evses"][evse_id]["connectors"][connector_id] = connector
 
-    def patchConnector(
-        self, country_id, party_id, location_id, evse_id, connector_id, connector
-    ):
-        self.locations[location_id][evse_id][connector_id].update(connector)
+    def patchConnector(self, country_id, party_id, location_id, evse_id, connector_id, connector):
+        log.info(f"patching connector {location_id}/{evse_id}/{connector_id}: {connector}")
+        self.locations[location_id]["evses"][evse_id]["connectors"][connector_id].update(connector)
 
 
 class VersionManager:
@@ -277,4 +307,26 @@ class VersionManager:
         return {"version": self._ocpi_version, "endpoints": self._details}
     
     
+class SessionManager:
+    def __init__(self):
+        self.sessions = {}
+
+    def getSessions(self, begin, end, offset, limit):
+        log.debug("get sessions")
+        return list(self.sessions.values())[offset : offset + limit], {}
+
+    def getSession(self, country_id, party_id, session_id):
+        log.debug("get session")
+        return 204
+
+    def createSession(self, country_id, party_id, session):
+        log.debug("create session")
+        return 204
+
+    def patchSession(self, country_id, party_id, session_id, sessionPart):
+        log.debug("patch session")
+        pass
+
+    def updateChargingPrefs(self, session_id, prefs):
+        pass
 

@@ -10,13 +10,16 @@ from __future__ import annotations
 
 import logging
 
-from flask_restx import Namespace, Resource
+from flask_restx import Namespace, Resource, Model
 
-from ocpi.models import resp, respList
+from ocpi.models import resp, respList, respEmpty
 from ocpi.models.location import (
     EVSE,
+    EVSEOptional,
     Connector,
+    ConnectorOptional,
     Location,
+    LocationOptional,
     add_models_to_location_namespace,
 )
 from ocpi.namespaces import (
@@ -36,24 +39,24 @@ log = logging.getLogger("ocpi")
 
 def receiver():
     # keep in mind: https://stackoverflow.com/a/16569475
-    @locations_ns.route(
-        "/<string:location_id>",
-        "/<string:location_id>/<string:evse_uid>",
-        "/<string:location_id>/<string:evse_uid>/<string:connector_id>",
-    )
-    @locations_ns.expect(parser)
-    class get_location(Resource):
-        def __init__(self, api=None, *args, **kwargs):
-            self.locationmanager = kwargs["location_manager"]
-            super().__init__(api, *args, **kwargs)
+    # @locations_ns.route(
+    #     "/<string:location_id>",
+    #     "/<string:location_id>/<string:evse_uid>",
+    #     "/<string:location_id>/<string:evse_uid>/<string:connector_id>",
+    # )
+    # @locations_ns.expect(parser)
+    # class get_location(Resource):
+    #     def __init__(self, api=None, *args, **kwargs):
+    #         self.locationmanager = kwargs["locations"]
+    #         super().__init__(api, *args, **kwargs)
 
-        @locations_ns.marshal_with(resp(locations_ns, Location))
-        def get(self, location_id, evse_uid=None, connector_id=None):
-            """
-            Filter Locations/EVSEs/Connectors by id
-            """
+    #     @locations_ns.marshal_with(resp(locations_ns, Location))
+    #     def get(self, location_id, evse_uid=None, connector_id=None):
+    #         """
+    #         Filter Locations/EVSEs/Connectors by id
+    #         """
 
-            return make_response(self.locationmanager.getLocation, "", "", location_id)
+    #         return make_response(self.locationmanager.getLocation, "", "", location_id)
 
     # Receiver interface: eMSP and NSP.
 
@@ -64,6 +67,7 @@ def receiver():
             self.locationmanager = kwargs["locations"]
             super().__init__(api, *args, **kwargs)
 
+        @token_required
         @locations_ns.marshal_with(resp(locations_ns, Location))
         def get(self, country_code, party_id, location_id):
             """
@@ -74,8 +78,9 @@ def receiver():
                 self.locationmanager.getLocation, country_code, party_id, location_id
             )
 
+        @token_required
         @locations_ns.expect(Location)
-        @locations_ns.marshal_with(resp(locations_ns, Location))
+        @locations_ns.marshal_with(respEmpty(locations_ns))
         def put(self, country_code, party_id, location_id):
             """
             Add/Replace Location by ID
@@ -89,8 +94,9 @@ def receiver():
                 locations_ns.payload,
             )
 
-        @locations_ns.expect(Location)
-        @locations_ns.marshal_with(resp(locations_ns, Location))
+        @token_required
+        @locations_ns.expect(LocationOptional)
+        @locations_ns.marshal_with(respEmpty(locations_ns))
         def patch(self, country_code, party_id, location_id):
             """
             Partially update Location
@@ -103,7 +109,8 @@ def receiver():
                 location_id,
                 locations_ns.payload,
             )
-
+        
+    @token_required
     @locations_ns.route(
         "/<string:country_code>/<string:party_id>/<string:location_id>/<string:evse_uid>"
     )
@@ -127,8 +134,9 @@ def receiver():
                 evse_uid,
             )
 
+        @token_required
         @locations_ns.expect(EVSE)
-        @locations_ns.marshal_with(resp(locations_ns, EVSE))
+        @locations_ns.marshal_with(respEmpty(locations_ns))
         def put(self, country_code, party_id, location_id, evse_uid):
             """
             Add/Replace EVSE by ID
@@ -143,8 +151,9 @@ def receiver():
                 locations_ns.payload,
             )
 
-        @locations_ns.expect(EVSE)
-        @locations_ns.marshal_with(resp(locations_ns, EVSE))
+        @token_required
+        @locations_ns.expect(EVSEOptional)
+        @locations_ns.marshal_with(respEmpty(locations_ns))
         def patch(self, country_code, party_id, location_id, evse_uid):
             """
             Partially update EVSE
@@ -159,6 +168,7 @@ def receiver():
                 locations_ns.payload,
             )
 
+    @token_required
     @locations_ns.route(
         "/<string:country_code>/<string:party_id>/<string:location_id>/<string:evse_uid>/<string:connector_id>"
     )
@@ -183,8 +193,9 @@ def receiver():
                 connector_id,
             )
 
+        @token_required
         @locations_ns.expect(Connector)
-        @locations_ns.marshal_with(resp(locations_ns, Connector))
+        @locations_ns.marshal_with(respEmpty(locations_ns))
         def put(self, country_code, party_id, location_id, evse_uid, connector_id):
             """
             Add/Replace Connector by ID
@@ -199,9 +210,10 @@ def receiver():
                 connector_id,
                 locations_ns.payload,
             )
-
-        @locations_ns.expect(Connector)
-        @locations_ns.marshal_with(resp(locations_ns, Connector))
+        
+        @token_required
+        @locations_ns.expect(ConnectorOptional)
+        @locations_ns.marshal_with(respEmpty(locations_ns))
         def patch(self, country_code, party_id, location_id, evse_uid, connector_id):
             """
             Partially update Connector
@@ -213,6 +225,7 @@ def receiver():
                 party_id,
                 location_id,
                 evse_uid,
+                connector_id,
                 locations_ns.payload,
             )
 

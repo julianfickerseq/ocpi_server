@@ -6,7 +6,7 @@ from __future__ import annotations
 # https://aaronluna.dev/series/flask-api-tutorial/part-4/
 import base64
 import logging
-from datetime import datetime
+from datetime import datetime,timezone
 from functools import wraps
 
 from flask import request
@@ -101,9 +101,11 @@ def make_response(function, *args, **kwargs):
         else:
             data = result
     except oe.OcpiError as e:
+        log.error(e)
         #status_message = e.message
         status_code = e.status_code
     except Exception as e:
+        log.error(e)
         #status_message = f"Error {e}"
         status_code = 3000
 
@@ -112,7 +114,7 @@ def make_response(function, *args, **kwargs):
             "data": data,
             "status_code": status_code,
             #"status_message": status_message,
-            "timestamp": datetime.now(),
+            "timestamp": datetime.now(timezone.utc),
         },
         http_code,
         headers,
@@ -123,7 +125,7 @@ if __name__ == "__main__":
 
     def raisUnsupVers(input_):
         print(input_)
-        raise oe.UnsupportedVersionError("should be 2.2")
+        raise oe.UnsupportedVersionError("should be 2.1.1")
 
     print(make_response(raisUnsupVers, 4))
 

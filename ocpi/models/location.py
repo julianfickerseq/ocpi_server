@@ -12,6 +12,7 @@ from __future__ import annotations
 from flask_restx import Model, fields
 
 #from ocpi.models.tokens import token_type
+from ocpi.models import duplicateOptional
 from ocpi.models.types import CaseInsensitiveString, DisplayText
 
 AdditionalGeoLocation = Model(
@@ -40,35 +41,24 @@ GeoLocation = Model(
         "latitude": fields.String(
             max_length=10,
             required=True,
-            description="Latitude of the point in decimal degree. Regex: -?[0-9]{1,3}\.[0-9]{5,7}",
+            description="Latitude of the point in decimal degree. Example: 50.770774",
         ),
         "longitude": fields.String(
             max_length=11,
             required=True,
-            description="Longitude of the point in decimal degree.",
+            description="Longitude of the point in decimal degree. Example: -126.104965",
         ),
     },
 )
 
 capability = [
     "CHARGING_PROFILE_CAPABLE",  # The EVSE supports charging profiles.
-    "CHARGING_PREFERENCES_CAPABLE",  # The EVSE supports charging preferences.
-    # EVSE has a payment terminal that supports chip cards.
-    "CHIP_CARD_SUPPORT",
-    # EVSE has a payment terminal that supports contactless cards.
-    "CONTACTLESS_CARD_SUPPORT",
     # EVSE has a payment terminal that makes it possible to pay for charging using a credit card.
     "CREDIT_CARD_PAYABLE",
-    # EVSE has a payment terminal that makes it possible to pay for charging using a debit card.
-    "DEBIT_CARD_PAYABLE",
-    # EVSE has a payment terminal with a pin-code entry device.
-    "PED_TERMINAL",
     "REMOTE_START_STOP_CAPABLE",  # The EVSE can remotely be started/stopped.
     "RESERVABLE",  # The EVSE can be reserved.
     # Charging at this EVSE can be authorized with an RFID token.
     "RFID_READER",
-    # This EVSE supports token groups, two or more tokens work as one, so that a session can be started with one token and stopped with another (handy when a card and key-fob are given to the EV-driver).
-    "TOKEN_GROUP_CAPABLE",
     # Connectors have mechanical lock that can be requested by the eMSP to be unlocked.
     "UNLOCK_CAPABLE",
 ]
@@ -101,8 +91,6 @@ connector_type = [
     "IEC_62196_T2_COMBO",  # Combo Type 2 based, DC
     "IEC_62196_T3A",  # IEC 62196 Type 3A
     "IEC_62196_T3C",  # IEC 62196 Type 3C "Scame"
-    "PANTOGRAPH_BOTTOM_UP",  # On-board Bottom-up-Pantograph typically for bus charging
-    "PANTOGRAPH_TOP_DOWN",  # Off-board Top-down-Pantograph typically for bus charging
     "TESLA_R",  # Tesla Connector "Roadster"-type (round, 4 pin)
     "TESLA_S",  # Tesla Connector "Model-S"-type (oval, 5 pin)
 ]
@@ -140,10 +128,10 @@ EnergySource = Model(
     "EnergySource",
     {
         "source": fields.String(
-            enum=energy_source_category, description="The type of energy source."
+            enum=energy_source_category, required=True, description="The type of energy source."
         ),
         "percentage": fields.Float(
-            description="Percentage of this source (0-100) in the mix."
+            required=True, description="Percentage of this source (0-100) in the mix."
         ),
     },
 )
@@ -156,8 +144,8 @@ EnergyMix = Model(
         ),
         "energy_sources": fields.List(fields.Nested(EnergySource)),
         "environ_impact": fields.List(fields.Nested(EnvironmentalImpact)),
-        "supplier_name": fields.String(max_length=64, required=True),
-        "energy_product_name": fields.String(max_length=64, required=True),
+        "supplier_name": fields.String(max_length=64, description="Supplier Name"),
+        "energy_product_name": fields.String(max_length=64, description="Energy Product Name"),
     },
 )
 
@@ -173,14 +161,10 @@ facility = [
     "RECREATION_AREA",
     "NATURE",
     "MUSEUM",
-    "BIKE_SHARING",
     "BUS_STOP",
     "TAXI_STAND",
-    "TRAM_STOP",
-    "METRO_STATION",
     "TRAIN_STATION",
     "AIRPORT",
-    "PARKING_LOT",
     "CARPOOL_PARKING",
     "FUEL_STATION",
     "WIFI",
@@ -201,12 +185,12 @@ status = [
 parking_restrictions = ["EV_ONLY", "PLUGGED", "DISABLED", "CUSTOMERS", "MOTORCYCLES"]
 
 parking_type = [
-    "ALONG_MOTORWAY",
     "PARKING_GARAGE",
     "PARKING_LOT",
-    "ON_DRIVEWAY",
     "ON_STREET",
     "UNDERGROUND_GARAGE",
+    "OTHER",
+    "UNKNOWN"
 ]
 
 image_category = [
@@ -227,7 +211,7 @@ Image = Model(
             description="URL from where the image data can be fetched through a web browser.",
         ),
         "thumbnail": fields.String(),
-        "category": fields.String(enum=image_category),
+        "category": fields.String(enum=image_category, required=True),
         "type": fields.String(
             max_length=4,
             required=True,
@@ -254,6 +238,7 @@ RegularHours = Model(
     {
         "weekday": fields.Integer(
             required=True,
+            max_length=1,
             description="Number of day in the week, from Monday (1) till Sunday (7)",
         ),
         "period_begin": fields.String(
@@ -275,7 +260,8 @@ ExceptionalPeriod = Model(
         "period_begin": fields.DateTime(
             required=True, description="Begin of the exception."
         ),
-        "period_end": fields.DateTime(description="End of the exception."),
+        "period_end": fields.DateTime(
+            required=True, description="End of the exception."),
     },
 )
 
@@ -293,13 +279,13 @@ ExceptionalPeriod = Model(
 Hours = Model(
     "Hours",
     {
-        "twentyfourseven": fields.Boolean(
-            required=True,
-            description="True to represent 24 hours a day and 7 days a week, except the given exceptions.",
-        ),
         "regular_hours": fields.List(
             fields.Nested(RegularHours),
             description="Regular hours, weekday-based. Only to be used if twentyfourseven=false, then this field needs to contain at least one RegularHours object.",
+        ),
+        "twentyfourseven": fields.Boolean(
+            required=True,
+            description="True to represent 24 hours a day and 7 days a week, except the given exceptions.",
         ),
         "exceptional_openings": fields.List(
             fields.Nested(ExceptionalPeriod),
@@ -350,23 +336,18 @@ Connector = Model(
         "power_type": fields.String(
             enum=power_type, required=True, description="Type of power outlet"
         ),
-        "max_voltage": fields.Integer(
+        "voltage": fields.Integer(
             required=True,
-            description="Maximum voltage of the connector (line to neutral for AC_3_PHASE), in volt [V]. For example: DC Chargers might vary the voltage during charging when battery almost full.",
+            description="Voltage of the connector (line to neutral for AC_3_PHASE), in volt [V].",
         ),
-        "max_amperage": fields.Integer(
+        "amperage": fields.Integer(
             required=True,
             description="Maximum amperage of the connector, in ampere [A].",
         ),
-        "max_electric_power": fields.Integer(
-            description="Maximum electric power that can be delivered by this connector, in Watts (W). When the maximum electric power is lower than the calculated value from voltage and amperage, this value should be set."
-        ),
-        "tariff_ids": fields.List(
+        "tariff_id":
             fields.String(
                 max_length=36,
-                required=True,
-                description="Identifiers of the currently valid charging tariffs. Multiple tariffs are possible, but only one of each Tariff.type can be active at the same time.",
-            )
+                description="Identifier of the current charging tariff structure. For a “Free of Charge” tariff this field should be set, and point to a defined “Free of Charge” tariff.",
         ),
         "terms_and_conditions": fields.String(
             description="URL to the operator’s terms and conditions."
@@ -377,12 +358,13 @@ Connector = Model(
         ),
     },
 )
+ConnectorOptional=duplicateOptional(model=Connector)
 
 EVSE = Model(
     "EVSE",
     {
         "uid": fields.String(
-            max_length=36,
+            max_length=39,
             required=True,
             description='Uniquely identifies the EVSE within the CPOs platform (and suboperator platforms). For example a database ID or the actual "EVSE ID". This field can never be changed, modified or renamed.',
         ),
@@ -405,6 +387,7 @@ EVSE = Model(
         ),
         "connectors": fields.List(
             fields.Nested(Connector),
+            required=True,
             description="List of available connectors on the EVSE.",
         ),
         "floor_level": fields.String(
@@ -436,37 +419,24 @@ EVSE = Model(
         ),
     },
 )
+EVSEOptional=duplicateOptional(model=EVSE)
+
 
 Location = Model(
     "Location",
     {
-        "country_code": CaseInsensitiveString(
-            max_length=2,
-            required=True,
-            description="ISO-3166 alpha-2 country code of the CPO that 'owns' this Location.",
-        ),
-        "party_id": CaseInsensitiveString(
-            max_length=3,
-            required=True,
-            description="CPO ID of the CPO that 'owns' this Location (following the ISO-15118 standard).",
-        ),
         "id": CaseInsensitiveString(
-            max_length=36,
+            max_length=39,
             required=True,
             description="Uniquely identifies the location within the CPOs platform (and suboperator platforms). This field can never be changed, modified or renamed.",
         ),
-        "publish": fields.Boolean(
-            required=True,
-            default=True,
-            description="Defines if a Location may be published on an website or app etc.",
-        ),
-        "publish_allowed_to": fields.List(
-            fields.String(
-                description="Only owners of Tokens that match all the set fields of one PublishToken in the list are allowed to be shown this location."
-            )
+        "type": fields.String(
+            enum=parking_type,
+            description="The general type of parking at the charge point location.",
         ),
         "name": fields.String(
-            max_length=255, description="Display name of the location."
+            max_length=255,
+            description="Display name of the location."
         ),
         "address": fields.String(
             max_length=45,
@@ -478,14 +448,10 @@ Location = Model(
         ),
         "postal_code": fields.String(
             max_length=10,
+            required=True,
             description="Postal code of the location, may only be omitted when the location has no postal code: in some countries charging locations at highways don’t have postal codes.",
         ),
-        "state": fields.String(
-            max_length=20,
-            required=True,
-            description="State or province of the location, only to be used when relevant.",
-        ),
-        "country": fields.String(
+        "country": CaseInsensitiveString(
             max_length=3,
             required=True,
             description="ISO 3166-1 alpha-3 code for the country of this location.",
@@ -497,15 +463,12 @@ Location = Model(
             fields.Nested(AdditionalGeoLocation),
             description="Geographical location of related points relevant to the user.",
         ),
-        "parking_type": fields.String(
-            enum=parking_type,
-            description="The general type of parking at the charge point location.",
-        ),
         "evses": fields.List(
             fields.Nested(EVSE),
             description="List of EVSEs that belong to this Location.",
         ),
-        "directions": fields.Float(
+        "directions": fields.List(
+            fields.Nested(DisplayText),
             description="Human-readable directions on how to reach the location."
         ),
         "operator": fields.Nested(
@@ -520,11 +483,12 @@ Location = Model(
         ),
         "facilities": fields.List(
             fields.String(
+                enum=facility,
                 description="Optional list of facilities this charging location directly belongs to."
             )
         ),
         "time_zone": fields.String(
-            required=True,
+            max_length=255,
             description="One of IANA tzdata’s TZ-values representing the time zone of the location.",
         ),
         "opening_times": fields.Nested(
@@ -548,6 +512,7 @@ Location = Model(
         ),
     },
 )
+LocationOptional=duplicateOptional(model=Location)
 
 
 def add_models_to_location_namespace(namespace):
@@ -571,5 +536,8 @@ def add_models_to_location_namespace(namespace):
         #PublishTokenType,
         Hours,
         DisplayText,
+        LocationOptional,
+        EVSEOptional,
+        ConnectorOptional
     ]:
         namespace.models[model.name] = model

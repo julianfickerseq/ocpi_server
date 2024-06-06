@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from flask_restx import fields
+from flask_restx import fields,model
 
 
 def respRaw(namespace, model):
@@ -32,6 +32,14 @@ def resp(namespace, model):
         },
     )
 
+def respEmpty(namespace):
+    return namespace.model(
+        "Empty Response",
+        {
+            "status_code": fields.Integer(required=True),
+            "timestamp": fields.DateTime(required=True),
+        },
+    )
 
 def respList(namespace, model):
     """
@@ -47,3 +55,22 @@ def respList(namespace, model):
             "timestamp": fields.DateTime(required=True),
         },
     )
+
+def duplicateOptional(model:model):
+    duplicate = model.clone(f"{model.name}Optional")
+    makeOptional(duplicate)
+    return duplicate
+
+def makeOptional(node):
+    children=parseModelSingleLevel(node)
+    if children:
+        for child in children:
+            makeOptional(child)
+
+def parseModelSingleLevel(node):
+    children=[]
+    for field_name in node:
+        node.get(field_name).required = False
+        if hasattr(node.get(field_name),"model"):
+            children.append(node.get(field_name).model)
+    return children

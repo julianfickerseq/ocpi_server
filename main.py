@@ -57,7 +57,7 @@ cred_roles = [{
 
 # inject dependencies here
 # must have expected method signatures
-#ses = om.SessionManager()
+ses = om.SessionManager()
 loc = om.LocationManager()
 #commands = om.CommandsManager()
 #reservations = om.ReservationManager()
@@ -70,7 +70,7 @@ injected_objects = {
     'credentials': {'role': 'SENDER', 'object': cm},
     'locations': {'role': 'RECEIVER', 'object': loc},
     #'commands': {'role': 'SENDER', 'object': commands},
-    #'sessions': {'role': 'SENDER', 'object': ses},
+    'sessions': {'role': 'RECEIVER', 'object': ses},
     #'reservations': {'role': 'SENDER', 'object': reservations},
     #'tokens': {'role': 'SENDER', 'object': om.TokensManager()},
     #'tariffs': {'role': 'SENDER', 'object': om.TariffsManager()},
@@ -94,6 +94,8 @@ blueprint = createOcpiBlueprint(
     HOST_URL, injected_objects, url_prefix=url_prefix)
 app.register_blueprint(blueprint)
 app.url_map.strict_slashes=False
+app.config['DEBUG'] = os.environ.get('DEBUG', False)
+
 
 if __name__ == '__main__':
     app.run(port=port)

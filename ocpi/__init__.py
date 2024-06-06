@@ -22,6 +22,7 @@ from ocpi.namespaces.internal import internal_ns
 from ocpi.namespaces.credentials import credentials_ns
 from ocpi.namespaces.locations import makeLocationNamespace
 from ocpi.namespaces.versions import versions_ns
+from ocpi.namespaces.sessions import makeSessionNamespace
 
 log = logging.getLogger("ocpi")
 
@@ -77,7 +78,7 @@ def createOcpiBlueprint(base_url, injected_objects=injected, ocpi_version="2.1.1
         "credentials": lambda x: credentials_ns,
         "versions": lambda x: versions_ns,
         # "commands": makeCommandsNamespace,
-        # "sessions": makeSessionNamespace,
+        "sessions": makeSessionNamespace,
         # "reservations": makeReservationNamespace,
         # "parking": makeParkingNamespace,
         # "charging_profiles": makeChargingProfilesNamespace,

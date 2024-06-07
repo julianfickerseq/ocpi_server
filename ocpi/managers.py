@@ -316,17 +316,15 @@ class SessionManager:
         return list(self.sessions.values())[offset : offset + limit], {}
 
     def getSession(self, country_id, party_id, session_id):
-        log.debug("get session")
-        return 204
+        log.debug(f"getting session {session_id}")
+        return self.sessions[session_id]
 
     def createSession(self, country_id, party_id, session):
-        log.debug("create session")
-        return 204
+        log.debug(f"create session {session['id']}")
+        self.sessions[session["id"]]=session
 
     def patchSession(self, country_id, party_id, session_id, sessionPart):
         log.debug("patch session")
-        pass
+        self.sessions[session_id].update(sessionPart)
 
-    def updateChargingPrefs(self, session_id, prefs):
-        pass
 

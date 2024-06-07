@@ -10,53 +10,21 @@ from __future__ import annotations
 
 from flask_restx import Model, fields
 
-from ocpi.models.tariffs import Price
-from ocpi.models.tokens import token_type
+from ocpi.models import duplicateOptional
+
 from ocpi.models.types import CaseInsensitiveString
+from ocpi.models.location import Location
 
 ############### Session Models ###############
 
 
-CdrToken = Model(
-    "CdrToken",
-    {
-        "country_code": CaseInsensitiveString(
-            required=True,
-            description="ISO-3166 alpha-2 country code of the CPO that 'owns' this Session.",
-        ),
-        "party_id": CaseInsensitiveString(
-            required=True,
-            description="CPO ID of the CPO that 'owns' this Token (following the ISO-15118 standard).",
-        ),
-        "uid": CaseInsensitiveString(
-            max_length=36,
-            required=True,
-            description="Unique ID by which this Token can be identified.",
-        ),
-        "type": fields.String(
-            enum=token_type, required=True, description="Type of the token"
-        ),
-        "contract_id": CaseInsensitiveString(
-            max_length=36,
-            required=True,
-            description='Uniquely identifies the EV driver contract token within the eMSP’s platform (and suboperator platforms). Recommended to follow the specification for eMA ID from "eMI3 standard version V1.0" ',
-        ),
-    },
-)
-
 cdr_dimension_type = [
-    "CURRENT",
     "ENERGY",
-    "ENERGY_EXPORT",
-    "ENERGY_IMPORT",
+    "FLAT",
     "MAX_CURRENT",
     "MIN_CURRENT",
-    "MAX_POWER",
     "MIN_POWER",
     "PARKING_TIME",
-    "POWER",
-    "RESERVATION_TIME",
-    "STATE_OF_CHARGE",
     "TIME",
 ]
 
@@ -65,9 +33,10 @@ CdrDimension = Model(
     "CdrDimension",
     {
         "type": fields.String(
-            enum=cdr_dimension_type, description="Type of CDR dimension."
+            enum=cdr_dimension_type, description="Type of CDR dimension.", required=True
         ),
         "volume": fields.Float(
+            required=True,
             description="Volume of the dimension consumed, measured according to the dimension type."
         ),
     },
@@ -86,18 +55,12 @@ ChargingPeriod = Model(
             required=True,
             description="List of relevant values for this charging period.",
         ),
-        "tariff_id": CaseInsensitiveString(
-            max_length=36,
-            description="Unique identifier of the Tariff that is relevant for this Charging Period. If not provided, no Tariff is relevant during this period.",
-        ),
     },
 )
 
+session_status = ["ACTIVE", "COMPLETED", "INVALID", "PENDING"]
 
-auth_method = ["AUTH_REQUEST", "COMMAND", "WHITELIST"]
-session_status = ["ACTIVE", "COMPLETED", "INVALID", "PENDING", "RESERVATION"]
-
-BaseSession = Model(
+Session = Model(
     "BaseSession",
     {
         "id": CaseInsensitiveString(
@@ -120,19 +83,25 @@ BaseSession = Model(
             required=True,
             description="Reference to a token, identified by the auth_id field of the Token."
         ),
-        "location": fields.String(
-            max_length=36,
+        "location": fields.Nested(
+            Location,
             required=True,
-            description="Location.id of the Location object of this CPO, on which the charging session is/was happening.",
+            description="The location where this session took place, including only the relevant EVSE and connector.",
+        ),
+        "meter_id": fields.String(
+            max_length=255, description="Optional identification of the kWh meter."
         ),
         "currency": fields.String(
             max_length=3,
             required=True,
             description="ISO 4217 code of the currency used for this session.",
         ),
-        "total_cost": fields.Nested(
-            Price,
-            description="The total cost of the session in the specified currency. This is the price that the eMSP will have to pay to the CPO.",
+        "charging_periods": fields.List(
+            fields.Nested(ChargingPeriod),
+            description="An optional list of Charging Periods that can be used to calculate and verify the total cost.",
+        ),
+        "total_cost": fields.Float(
+            description="The total cost (excluding VAT) of the session in the specified currency. This is the price that the eMSP will have to pay to the CPO. A total_cost of 0.00 means free of charge. When omitted, no price information is given in the Session object, this does not have to mean it is free of charge.",
         ),
         "status": fields.String(
             enum=session_status,
@@ -140,92 +109,21 @@ BaseSession = Model(
             default="PENDING",
             description="The status of the session.",
         ),
-        "charging_periods": fields.List(
-            fields.Nested(ChargingPeriod),
-            description="An optional list of Charging Periods that can be used to calculate and verify the total cost.",
-            required=False,
-        ),
         "last_updated": fields.DateTime(
             description="Timestamp when this Session was last updated (or created)."
         ),
     },
 )
 
-Session = BaseSession.clone(
-    "Session",
-    {
-        "cdr_token": fields.Nested(
-            CdrToken,
-            required=True,
-            description="Token used to start this charging session, including all the relevant information to identify the unique token.",
-        ),
-        "auth_method": fields.String(
-            enum=auth_method,
-            required=True,
-            description="Method used for authentication.",
-        ),
-        "authorization_reference": CaseInsensitiveString(
-            max_length=36,
-            description="Reference to the authorization given by the eMSP. When the eMSP provided an authorization_reference in either: real-time authorization or StartSession, this field SHALL contain the same value.",
-            required=False,
-        ),
-        "evse_uid": CaseInsensitiveString(
-            max_length=36,
-            required=True,
-            description="EVSE.uid of the EVSE of this Location on which the charging session is/was happening.",
-        ),
-        "connector_id": CaseInsensitiveString(
-            max_length=36,
-            required=True,
-            description="Connector.id of the Connector of this Location the charging session is/was happening.",
-        ),
-        "meter_id": fields.String(
-            max_length=255, description="Optional identification of the kWh meter."
-        ),
-    },
-)
+SessionOptional=duplicateOptional(model=Session)
 
-profile_type = ["CHEAP", "FAST", "GREEN", "REGULAR"]
 
-ChargingPreferences = Model(
-    "ChargingPreferences",
-    {
-        "profile_type": fields.String(
-            enum=profile_type,
-            default="REGULAR",
-            description="Type of Smart Charging Profile selected by the driver",
-        ),
-        "departure_time": fields.DateTime(
-            required=True,
-            description="Expected departure. The driver has given this Date/Time as expected departure moment. It is only an estimation and not necessarily the Date/Time of the actual departure.",
-        ),
-        "energy_need": fields.Float(
-            description="Requested amount of energy in kWh. The EV driver wants to have this amount of energy charged."
-        ),
-        "discharge_allowed": fields.Boolean(
-            default=False,
-            description="The driver allows their EV to be discharged when needed, as long as the other preferences are met",
-        ),
-    },
-)
-
-charging_pref_results = [
-    "ACCEPTED",
-    "DEPARTURE_REQUIRED",
-    "ENERGY_NEED_REQUIRED",
-    "NOT_POSSIBLE",
-    "PROFILE_TYPE_NOT_SUPPORTED",
-]
 
 
 def add_models_to_session_namespace(namespace):
     for model in [
-        CdrToken,
         CdrDimension,
         ChargingPeriod,
         Session,
-        ChargingPreferences,
-        BaseSession,
-        Price,
     ]:
         namespace.models[model.name] = model

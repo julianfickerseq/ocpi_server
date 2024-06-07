@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import logging
 
-from flask_restx import Namespace, Resource, Model
+from flask_restx import Namespace, Resource
 
 from ocpi.models import resp, respList, respEmpty
 from ocpi.models.location import (

@@ -11,7 +11,6 @@ from __future__ import annotations
 ############### Location Models ###############
 from flask_restx import Model, fields
 
-#from ocpi.models.tokens import token_type
 from ocpi.models import duplicateOptional
 from ocpi.models.types import CaseInsensitiveString, DisplayText
 

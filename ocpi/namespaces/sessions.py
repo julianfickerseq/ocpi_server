@@ -10,12 +10,11 @@ from __future__ import annotations
 
 from flask_restx import Namespace, Resource, fields
 
-from ocpi.models import resp, respList, respRaw
+from ocpi.models import resp, respList, respRaw, respEmpty
 from ocpi.models.sessions import (
-    ChargingPreferences,
     Session,
+    SessionOptional,
     add_models_to_session_namespace,
-    charging_pref_results,
 )
 from ocpi.namespaces import (
     get_header_parser,
@@ -27,10 +26,6 @@ from ocpi.namespaces import (
 sessions_ns = Namespace(name="sessions", validate=True)
 add_models_to_session_namespace(sessions_ns)
 header_parser = get_header_parser(sessions_ns)
-
-cp_result = fields.String(enum=charging_pref_results)
-cp_result.name = "charg_pref_result"
-
 
 def sender():
     @sessions_ns.route("/", doc={"description": "API Endpoint for Session management"})
@@ -82,30 +77,6 @@ def sender():
                 args["limit"],
             )
 
-    @sessions_ns.route(
-        "/<string:session_id>/charging_preferences",
-        doc={"description": "OCPI ChargingPreferences"},
-    )
-    @sessions_ns.response(404, "SessionID not found")
-    @sessions_ns.expect(header_parser)
-    class charging_preferences(Resource):
-        def __init__(self, api=None, *args, **kwargs):
-            self.sessionmanager = kwargs["sessions"]
-            super().__init__(api, *args, **kwargs)
-
-        @sessions_ns.doc("PutCommand")
-        @sessions_ns.expect(ChargingPreferences)
-        @sessions_ns.marshal_with(respRaw(sessions_ns, cp_result), code=201)
-        @sessions_ns.response(404, "EVSE not capable of smartcharging")
-        @token_required
-        def put(self, session_id):
-            """Update ChargingPreferences"""
-            session_id = session_id.upper()  # caseinsensitive
-
-            return make_response(
-                self.sessionmanager.updateChargingPrefs, session_id, sessions_ns.payload
-            )
-
     return sessions_ns
 
 
@@ -129,7 +100,7 @@ def receiver():
             )
 
         @sessions_ns.expect(Session)
-        @sessions_ns.marshal_with(resp(sessions_ns, Session), code=201)
+        @sessions_ns.marshal_with(respEmpty(sessions_ns), code=201)
         @token_required
         def put(self, country_id, party_id, session_id):
             """Add new Session"""
@@ -145,7 +116,7 @@ def receiver():
             )
 
         @sessions_ns.expect(Session, validate=False)
-        @sessions_ns.marshal_with(resp(sessions_ns, Session), code=201)
+        @sessions_ns.marshal_with(respEmpty(sessions_ns), code=201)
         @token_required
         def patch(self, country_id, party_id, session_id):
             session_id = session_id.upper()  # caseinsensitive

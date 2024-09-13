@@ -13,6 +13,12 @@ requests = "^2.31.0"
 gunicorn = "^22.0.0"
 
 
+[tool.poetry.group.test.dependencies]
+pytest = "^8.3.3"
+
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
+
+[tool.pytest]
+testpaths = "tests"

@@ -65,17 +65,8 @@ def _check_access_token():
     man = SingleCredMan.getInstance()
     if man == None:
         raise Forbidden(description="not initialized")
-
-    try:
-        decodedToken = base64.b64decode(token).decode("utf-8")
-        if not (man.isAuthenticated(decodedToken)):
-            raise Forbidden(description="not authorized")
-        return decodedToken
-    except Exception:
-        # accept plain token as token if not base64
-        log.warning("token was not sent as base64 - trying plain")
-        if not man.isAuthenticated(token):
-            raise Forbidden(description="not authorized")
+    if not man.isAuthenticated(token):
+        raise Forbidden(description="not authorized")
     return token
 
 

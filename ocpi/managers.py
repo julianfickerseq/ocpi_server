@@ -1,10 +1,3 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-"""
-Created on Thu Apr  1 12:47:48 2021
-
-@author: maurer
-"""
 from __future__ import annotations
 
 import base64
@@ -13,22 +6,20 @@ import logging
 import os
 import secrets
 from multiprocessing import RLock
-import copy
+from copy import deepcopy
 
 import requests
+from werkzeug.exceptions import NotFound
 
 import ocpi.models.credentials as mc
+import ocpi.exceptions as oe
 
 
-def createOcpiHeader(token,encode:bool=False):
-    encToken = base64.b64encode(token.encode("utf-8")).decode("utf-8") if encode else token
-    return {
-        "Authorization": "Token " + encToken,
-        "X-Request-ID": secrets.token_urlsafe(8),
-    }
-
-
+from pymongo import MongoClient
 log = logging.getLogger("ocpi")
+CONNECTION_STRING = f'mongodb://{os.environ["MONGO_USER"]}:{os.environ["MONGO_PWD"]}@{os.environ["MONGO_HOST"]}:{os.environ["MONGO_PORT"]}'
+mongo = MongoClient(CONNECTION_STRING)
+ocpi_db=mongo["ocpi"]
 # sender interface
 
 
@@ -37,10 +28,16 @@ class CredentialsManager:
         self.credentials_roles = credentials_roles
         self.url = url
         super().__init__(**kwds)
+        
+    def createOcpiHeader(self, token):
+        return {
+            "Authorization": "Token " + token,
+            "X-Request-ID": secrets.token_urlsafe(8),
+        }
 
     def _getEndpoints(self, client_url, client_version="2.1.1",access_client=None):
         endpoints = []
-        header = createOcpiHeader(access_client)
+        header = self.createOcpiHeader(access_client)
         try:
             response = requests.get(f"{client_url}/{client_version}",headers=header)
             endpoints = response.json()["data"]["endpoints"]
@@ -60,7 +57,7 @@ class CredentialsManager:
             "party_id": self.credentials_roles[0]["party_id"],
             "country_code": self.credentials_roles[0]["country_code"],
             }
-        header = createOcpiHeader(access_client)
+        header = self.createOcpiHeader(access_client)
         log.info(f"sending post request {data}")
         resp = requests.post(f"{url}/{version}/credentials", json=data, headers=header)
         if resp.status_code == 405:
@@ -78,7 +75,7 @@ class CredentialsManager:
         # data['data']['roles']
 
     def _pushObjects(self, objects, method, token, endpoint_url, with_path=True):
-        headers = createOcpiHeader(token)
+        headers = self.createOcpiHeader(token)
         for r in objects:
             try:
                 if with_path:
@@ -152,7 +149,6 @@ class CredentialsManager:
             "roles": [self.credentials_roles],
         }
 
-
 class CredentialsDictMan(CredentialsManager):
 
     lock = RLock()
@@ -206,74 +202,95 @@ class CredentialsDictMan(CredentialsManager):
             tokens = self.readJson()
             tokens.pop(token, None)
             self.writeJson(tokens)
+   
+    def getToken(self, token:str):
+        return self.readJson().get(token)
+
+    def getModuleEndpoint(self, token:str, ocpiModule:str):
+        token_object = self.readJson().get(token)
+        endpoint=next(endpoint for endpoint in token_object["endpoints"] if endpoint['identifier']==ocpiModule)
+        return endpoint.get("url")
 
 
-class LocationManager(object):
+
+class LocationManager():
     def __init__(self):
-        self.locations = {}
-    
-    def populateEvses(self, location_id, evses):
-        self.locations[location_id]["evses"]={}
-        for evse in evses:
-            self.locations[location_id]["evses"][evse["uid"]]=evse
-            self.populateConnectors(location_id, evse["uid"],evse["connectors"].copy())
-
-    def translateEvses(self, location):
-        for evse_id,evse in location["evses"].items():
-            location["evses"][evse_id]=self.translateConnectors(evse)
-        location["evses"]=list(location["evses"].values())
-        return location
-
-    def populateConnectors(self, location_id, evse_id, connectors):
-        self.locations[location_id]["evses"][evse_id]["connectors"]={}
-        for connector in connectors:
-            self.locations[location_id]["evses"][evse_id]["connectors"][connector["id"]]=connector
-    
-    def translateConnectors(self, evse):
-        evse["connectors"]=list(evse["connectors"].values())
-        return evse
-
-    def getLocations(self, begin, end, offset, limit):
-        log.info(f"getting locations")
-        return list(self.locations.values())[offset : offset + limit], {}
+        self.locations = ocpi_db["locations"]
+        self.evses = ocpi_db["evses"]
+        self.connectors = ocpi_db["connectors"]
 
     def getLocation(self, country_id, party_id, location_id):
-        log.info(f"getting location {location_id}")
-        return self.translateEvses(self.locations[location_id].copy())
-
-    def putLocation(self, country_id, party_id, location_id, location):
-        log.info(f"putting location: {location}")
-        self.locations[location_id] = location
-        self.populateEvses(location_id, location["evses"].copy())
+        location=self.locations.find_one({"_id":f"{location_id}"})
+        if location==None: raise oe.InvalidLocationError
+        location.pop("_id")
+        evses=self.evses.find({"location_id":location_id})
+        location["evses"]=[self.getEVSE(country_id, party_id, location_id, evse["evse_id"]) for evse in evses]
+        return location
         
+    def putLocation(self, country_id, party_id, location_id, location):
+        evses=deepcopy(location["evses"])
+        location["evses"]=[f'{location_id}-{evse["evse_id"]}' for evse in evses]
+        for evse in evses:
+            self.putEVSE(country_id, party_id, location_id, evse["evse_id"], evse)
+        try:
+            location["_id"]=location["id"]
+            self.locations.insert_one(location)
+        except:
+            print(f"already exists, patching location_id:{location_id}, with:{location}")
+            self.patchLocation(country_id, party_id, location_id, location)
+            
     def patchLocation(self, country_id, party_id, location_id, location):
-        log.info(f"patching location: {location}")
-        self.locations[location_id].update(location)
-
+        r=self.locations.update_one({"_id":f"{location_id}"},{"$set":location})
+        if r.matched_count<1: 
+            raise oe.InvalidLocationError
+    
     def getEVSE(self, country_id, party_id, location_id, evse_id):
-        log.info(f"getting evse {location_id}/{evse_id}")
-        return self.translateConnectors(self.locations[location_id]["evses"][evse_id].copy())
+        evse=self.evses.find_one({"_id":f"{location_id}-{evse_id}"})
+        if evse==None: raise oe.InvalidLocationError
+        evse["evse"]["connectors"]=[connector["connector"] for connector in self.connectors.find({"location_id":location_id,"evse_id":evse_id})]
+        return evse["evse"]
 
+        
     def putEVSE(self, country_id, party_id, location_id, evse_id, evse):
-        log.info(f"putting evse {location_id}/{evse_id}: {evse}")
-        self.locations[location_id]["evses"][evse_id] = evse
-        self.populateConnectors(location_id, evse_id, evse["connectors"].copy())
-
+        connectors=deepcopy(evse["connectors"])
+        evse["connectors"]=[f'{location_id}-{evse_id}-{connector["id"]}' for connector in connectors]
+        for connector in connectors:
+            self.putConnector(country_id, party_id, location_id, evse_id, connector["id"], connector)
+        try:
+            self.evses.insert_one({
+                "_id":f"{location_id}-{evse_id}",
+                "location_id":location_id,"evse_id":evse_id,"evse":evse})
+        except:
+            print(f"already exists, patching location_id:{location_id}, evse_id:{evse_id} with:{evse}")
+            self.patchEVSE(country_id, party_id, location_id, evse_id, evse)
+            
     def patchEVSE(self, country_id, party_id, location_id, evse_id, evse):
-        log.info(f"patching evse {location_id}/{evse_id}: {evse}")
-        self.locations[location_id]["evses"][evse_id].update(evse)
-
+        update_dict={"location_id":location_id,"evse_id":evse_id}|{f"evse.{key}": value for key, value in evse.items()}
+        r=self.evses.update_one({"_id":f"{location_id}-{evse_id}"},{"$set":update_dict})
+        if r.matched_count<1: 
+            raise oe.InvalidLocationError
+    
+    
     def getConnector(self, country_id, party_id, location_id, evse_id, connector_id):
-        log.info(f"getting connector {location_id}/{evse_id}/{connector_id}")
-        return self.locations[location_id]["evses"][evse_id]["connectors"][connector_id]
-
+        connectors = self.connectors.find_one({"_id":f"{location_id}-{evse_id}-{connector_id}"})
+        if connectors==None: raise oe.InvalidLocationError
+        return connectors["connectors"]
+        
     def putConnector(self, country_id, party_id, location_id, evse_id, connector_id, connector):
-        log.info(f"putting connector {location_id}/{evse_id}/{connector_id}: {connector}")
-        self.locations[location_id]["evses"][evse_id]["connectors"][connector_id] = connector
-
+        try:
+            self.connectors.insert_one({
+                "_id":f"{location_id}-{evse_id}-{connector_id}",
+                "location_id":location_id,"evse_id":evse_id,"connector_id":connector_id,"connector":connector})
+        except:
+            print(f"already exists, patching location_id:{location_id}, evse_id:{evse_id}, connector_id:{connector_id}, with:{connector}")
+            self.patchConnector(country_id, party_id, location_id, evse_id, connector_id, connector)
+            
     def patchConnector(self, country_id, party_id, location_id, evse_id, connector_id, connector):
-        log.info(f"patching connector {location_id}/{evse_id}/{connector_id}: {connector}")
-        self.locations[location_id]["evses"][evse_id]["connectors"][connector_id].update(connector)
+        r=self.connectors.update_one({
+                    "_id":f"{location_id}-{evse_id}-{connector_id}"},{"$set":{
+                    "location_id":location_id,"evse_id":evse_id,"connector_id":connector_id}|{f"connector.{key}": value for key, value in connector.items()}})
+        if r.matched_count<1: 
+            raise oe.InvalidLocationError
 
 
 class VersionManager:

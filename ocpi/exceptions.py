@@ -40,7 +40,7 @@ class InvalidTokenError(OcpiError):
 
 
 class ClientApiError(OcpiError):
-    status_code = 2004
+    status_code = 3001
 
     def __init__(self, message=""):
         self.message = f"Unable to use the client’s API {message}"

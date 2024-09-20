@@ -9,7 +9,8 @@ Created on Thu Mar 18 18:26:15 2021
 from __future__ import annotations
 
 import logging
-
+import requests
+from flask import request
 from flask_restx import Namespace, Resource
 
 from ocpi.models import resp, respList, respEmpty
@@ -27,7 +28,12 @@ from ocpi.namespaces import (
     make_response,
     pagination_parser,
     token_required,
+    SingleCredMan
 )
+import ocpi.exceptions as oe
+
+from functools import wraps
+
 
 locations_ns = Namespace(name="locations", validate=True)
 
@@ -36,6 +42,33 @@ parser = get_header_parser(locations_ns)
 
 log = logging.getLogger("ocpi")
 
+def get_location(headers, url, **kwargs):
+    r=requests.get(f'{url.strip("/")}/{kwargs["location_id"]}',headers=headers)
+    if r.status_code!=200: raise oe.InvalidLocationError
+    json_r = r.json()
+    if json_r["status_code"]!=1000: raise oe.InvalidLocationError
+    if not json_r["data"]: raise oe.InvalidLocationError
+    log.info(json_r["data"])
+    return json_r["data"]
+    
+def location_exists(f):
+    @wraps(f)
+    def decorated(self,*args, **kwargs):
+        exists=self.locationmanager.getLocation(kwargs["country_code"],kwargs["party_id"],kwargs["location_id"])
+        if exists:
+            return f(self,*args, **kwargs)
+        else:
+            authToken = request.headers.get("Authorization")
+            token = authToken.replace("Token ", "").strip()
+            credMan = SingleCredMan.getInstance()
+            client_token = credMan.getToken(token).get("client_token")
+            location=get_location(credMan.createOcpiHeader(client_token),
+                         credMan.getModuleEndpoint(token,"locations"), 
+                         **kwargs)
+            self.locationmanager.putLocation(kwargs["country_code"], kwargs["party_id"], kwargs["location_id"], location)
+            return f(self,*args, **kwargs)
+
+    return decorated
 
 def receiver():
     # keep in mind: https://stackoverflow.com/a/16569475
@@ -67,6 +100,8 @@ def receiver():
             self.locationmanager = kwargs["locations"]
             super().__init__(api, *args, **kwargs)
 
+
+
         @token_required
         @locations_ns.marshal_with(resp(locations_ns, Location))
         def get(self, country_code, party_id, location_id):
@@ -95,6 +130,7 @@ def receiver():
             )
 
         @token_required
+        @location_exists
         @locations_ns.expect(LocationOptional)
         @locations_ns.marshal_with(respEmpty(locations_ns))
         def patch(self, country_code, party_id, location_id):
@@ -110,7 +146,6 @@ def receiver():
                 locations_ns.payload,
             )
         
-    @token_required
     @locations_ns.route(
         "/<string:country_code>/<string:party_id>/<string:location_id>/<string:evse_uid>"
     )
@@ -125,7 +160,6 @@ def receiver():
             """
             Get EVSE by ID
             """
-
             return make_response(
                 self.locationmanager.getEVSE,
                 country_code,
@@ -135,13 +169,13 @@ def receiver():
             )
 
         @token_required
+        @location_exists
         @locations_ns.expect(EVSE)
         @locations_ns.marshal_with(respEmpty(locations_ns))
         def put(self, country_code, party_id, location_id, evse_uid):
             """
             Add/Replace EVSE by ID
             """
-
             return make_response(
                 self.locationmanager.putEVSE,
                 country_code,
@@ -152,13 +186,13 @@ def receiver():
             )
 
         @token_required
+        @location_exists
         @locations_ns.expect(EVSEOptional)
         @locations_ns.marshal_with(respEmpty(locations_ns))
         def patch(self, country_code, party_id, location_id, evse_uid):
             """
             Partially update EVSE
             """
-
             return make_response(
                 self.locationmanager.patchEVSE,
                 country_code,
@@ -168,10 +202,7 @@ def receiver():
                 locations_ns.payload,
             )
 
-    @token_required
-    @locations_ns.route(
-        "/<string:country_code>/<string:party_id>/<string:location_id>/<string:evse_uid>/<string:connector_id>"
-    )
+    @locations_ns.route("/<string:country_code>/<string:party_id>/<string:location_id>/<string:evse_uid>/<string:connector_id>")
     @locations_ns.expect(parser)
     class manage_connector(Resource):
         def __init__(self, api=None, *args, **kwargs):
@@ -183,7 +214,6 @@ def receiver():
             """
             Get Connector by ID
             """
-
             return make_response(
                 self.locationmanager.getConnector,
                 country_code,
@@ -194,13 +224,13 @@ def receiver():
             )
 
         @token_required
+        @location_exists
         @locations_ns.expect(Connector)
         @locations_ns.marshal_with(respEmpty(locations_ns))
         def put(self, country_code, party_id, location_id, evse_uid, connector_id):
             """
             Add/Replace Connector by ID
             """
-
             return make_response(
                 self.locationmanager.putConnector,
                 country_code,
@@ -212,13 +242,13 @@ def receiver():
             )
         
         @token_required
+        @location_exists
         @locations_ns.expect(ConnectorOptional)
         @locations_ns.marshal_with(respEmpty(locations_ns))
         def patch(self, country_code, party_id, location_id, evse_uid, connector_id):
             """
             Partially update Connector
             """
-
             return make_response(
                 self.locationmanager.patchConnector,
                 country_code,
@@ -228,7 +258,6 @@ def receiver():
                 connector_id,
                 locations_ns.payload,
             )
-
     return locations_ns
 
 

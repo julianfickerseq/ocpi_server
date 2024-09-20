@@ -1,54 +1,226 @@
-{"timestamp": "2024-07-09T12:47:49Z",
- "status_code": 1000,
- "data": {"id": "89900877",
-  "type": "ON_STREET",
-  "address": "Place verte 2",
-  "city": "Soignies",
-  "postal_code": "7060",
-  "country": "BEL",
-  "coordinates": {"latitude": "50.579461", "longitude": "4.069060"},
-  "charging_when_closed": false,
-  "time_zone": "Europe/Brussels",
-  "operator": {"name": "Equans Mobility Belux",
-   "website": "https://www.equans.be"},
-  "suboperator": {"name": "Equans Mobility Belux",
-   "website": "https://www.equans.be"},
-  "owner": {"name": "Equans Mobility Belux",
-   "website": "https://www.equans.be"},
-  "name": "Soignies - Place Verte - Public",
-  "opening_times": {"twentyfourseven": false},
-  "last_updated": "2024-07-08T14:58:21Z",
-  "evses": [{"uid": "11746794*2",
-    "evse_id": "BEEQSE11746794*2",
-    "status": "AVAILABLE",
+{
+  "to_send": {
+    "id": "89900877",
+    "type": "ON_STREET",
+    "address": "Place verte 2",
+    "city": "Soignies",
+    "postal_code": "7060",
+    "country": "BEL",
+    "coordinates": {
+      "latitude": "50.579461",
+      "longitude": "4.069060"
+    },
+    "charging_when_closed": false,
+    "time_zone": "Europe/Brussels",
+    "operator": {
+      "name": "Equans Mobility Belux",
+      "website": "https://www.equans.be"
+    },
+    "suboperator": {
+      "name": "Equans Mobility Belux",
+      "website": "https://www.equans.be"
+    },
+    "owner": {
+      "name": "Equans Mobility Belux",
+      "website": "https://www.equans.be"
+    },
+    "name": "Soignies - Place Verte - Public",
+    "opening_times": {
+      "twentyfourseven": false
+    },
     "last_updated": "2024-07-08T14:58:21Z",
-    "capabilities": ["RFID_READER",
-     "REMOTE_START_STOP_CAPABLE",
-     "CHARGING_PROFILE_CAPABLE",
-     "RESERVABLE"],
-    "physical_reference": "E81103",
-    "connectors": [{"id": "2",
-      "standard": "IEC_62196_T2",
-      "format": "SOCKET",
-      "power_type": "AC_3_PHASE",
-      "voltage": 230,
-      "amperage": 16,
-      "last_updated": "2024-07-08T14:58:21Z",
-      "tariff_id": "261029348"}]},
-   {"uid": "11746794*1",
-    "evse_id": "BEEQSE11746794*1",
-    "status": "AVAILABLE",
-    "last_updated": "2024-07-07T15:19:21Z",
-    "capabilities": ["RFID_READER",
-     "REMOTE_START_STOP_CAPABLE",
-     "CHARGING_PROFILE_CAPABLE",
-     "RESERVABLE"],
-    "physical_reference": "E81102",
-    "connectors": [{"id": "1",
-      "standard": "IEC_62196_T2",
-      "format": "SOCKET",
-      "power_type": "AC_3_PHASE",
-      "voltage": 230,
-      "amperage": 16,
-      "last_updated": "2024-07-07T15:19:21Z",
-      "tariff_id": "261029348"}]}]}}
+    "evses": [
+      {
+        "uid": "11746794*2",
+        "evse_id": "BEEQSE11746794*2",
+        "status": "AVAILABLE",
+        "last_updated": "2024-07-08T14:58:21Z",
+        "capabilities": [
+          "RFID_READER",
+          "REMOTE_START_STOP_CAPABLE",
+          "CHARGING_PROFILE_CAPABLE",
+          "RESERVABLE"
+        ],
+        "physical_reference": "E81103",
+        "connectors": [
+          {
+            "id": "2",
+            "standard": "IEC_62196_T2",
+            "format": "SOCKET",
+            "power_type": "AC_3_PHASE",
+            "voltage": 230,
+            "amperage": 16,
+            "last_updated": "2024-07-08T14:58:21Z",
+            "tariff_id": "261029348"
+          }
+        ]
+      },
+      {
+        "uid": "11746794*1",
+        "evse_id": "BEEQSE11746794*1",
+        "status": "AVAILABLE",
+        "last_updated": "2024-07-07T15:19:21Z",
+        "capabilities": [
+          "RFID_READER",
+          "REMOTE_START_STOP_CAPABLE",
+          "CHARGING_PROFILE_CAPABLE",
+          "RESERVABLE"
+        ],
+        "physical_reference": "E81102",
+        "connectors": [
+          {
+            "id": "1",
+            "standard": "IEC_62196_T2",
+            "format": "SOCKET",
+            "power_type": "AC_3_PHASE",
+            "voltage": 230,
+            "amperage": 16,
+            "last_updated": "2024-07-07T15:19:21Z",
+            "tariff_id": "261029348"
+          }
+        ]
+      }
+    ]
+  },
+  "to_get": {
+    "id": "89900877",
+    "type": "ON_STREET",
+    "name": "Soignies - Place Verte - Public",
+    "address": "Place verte 2",
+    "city": "Soignies",
+    "postal_code": "7060",
+    "country": "BEL",
+    "coordinates": {
+      "latitude": "50.579461",
+      "longitude": "4.069060"
+    },
+    "related_locations": null,
+    "evses": [
+      {
+        "uid": "11746794*2",
+        "evse_id": "BEEQSE11746794*2",
+        "status": "AVAILABLE",
+        "status_schedule": null,
+        "capabilities": [
+          "RFID_READER",
+          "REMOTE_START_STOP_CAPABLE",
+          "CHARGING_PROFILE_CAPABLE",
+          "RESERVABLE"
+        ],
+        "connectors": [
+          {
+            "id": "2",
+            "standard": "IEC_62196_T2",
+            "format": "SOCKET",
+            "power_type": "AC_3_PHASE",
+            "voltage": 230,
+            "amperage": 16,
+            "tariff_id": "261029348",
+            "terms_and_conditions": null,
+            "last_updated": "2024-07-08T14:58:21+00:00"
+          }
+        ],
+        "floor_level": null,
+        "coordinates": {
+          "latitude": null,
+          "longitude": null
+        },
+        "physical_reference": "E81103",
+        "directions": null,
+        "parking_restrictions": null,
+        "images": null,
+        "last_updated": "2024-07-08T14:58:21+00:00"
+      },
+      {
+        "uid": "11746794*1",
+        "evse_id": "BEEQSE11746794*1",
+        "status": "AVAILABLE",
+        "status_schedule": null,
+        "capabilities": [
+          "RFID_READER",
+          "REMOTE_START_STOP_CAPABLE",
+          "CHARGING_PROFILE_CAPABLE",
+          "RESERVABLE"
+        ],
+        "connectors": [
+          {
+            "id": "1",
+            "standard": "IEC_62196_T2",
+            "format": "SOCKET",
+            "power_type": "AC_3_PHASE",
+            "voltage": 230,
+            "amperage": 16,
+            "tariff_id": "261029348",
+            "terms_and_conditions": null,
+            "last_updated": "2024-07-07T15:19:21+00:00"
+          }
+        ],
+        "floor_level": null,
+        "coordinates": {
+          "latitude": null,
+          "longitude": null
+        },
+        "physical_reference": "E81102",
+        "directions": null,
+        "parking_restrictions": null,
+        "images": null,
+        "last_updated": "2024-07-07T15:19:21+00:00"
+      }
+    ],
+    "directions": null,
+    "operator": {
+      "name": "Equans Mobility Belux",
+      "website": "https://www.equans.be",
+      "logo": {
+        "url": null,
+        "thumbnail": null,
+        "category": null,
+        "type": null,
+        "width": null,
+        "height": null
+      }
+    },
+    "suboperator": {
+      "name": "Equans Mobility Belux",
+      "website": "https://www.equans.be",
+      "logo": {
+        "url": null,
+        "thumbnail": null,
+        "category": null,
+        "type": null,
+        "width": null,
+        "height": null
+      }
+    },
+    "owner": {
+      "name": "Equans Mobility Belux",
+      "website": "https://www.equans.be",
+      "logo": {
+        "url": null,
+        "thumbnail": null,
+        "category": null,
+        "type": null,
+        "width": null,
+        "height": null
+      }
+    },
+    "facilities": null,
+    "time_zone": "Europe/Brussels",
+    "opening_times": {
+      "regular_hours": null,
+      "twentyfourseven": false,
+      "exceptional_openings": null,
+      "exceptional_closings": null
+    },
+    "charging_when_closed": false,
+    "images": null,
+    "energy_mix": {
+      "is_green_energy": null,
+      "energy_sources": null,
+      "environ_impact": null,
+      "supplier_name": null,
+      "energy_product_name": null
+    },
+    "last_updated": "2024-07-08T14:58:21+00:00"
+  }
+}

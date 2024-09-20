@@ -1,13 +1,3 @@
-
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-"""
-Created on Sun Mar 21 21:57:33 2021
-
-@author: maurer
-
-Starter class for pyOCPI test
-"""
 import requests
 import json
 import os
@@ -20,6 +10,11 @@ from flask import Flask, redirect, request
 
 logging.basicConfig(level=logging.DEBUG)
 log = logging.getLogger('ocpi')
+
+if __name__ == '__main__':
+    from dotenv import load_dotenv
+    load_dotenv()
+    print("dotenv loaded")
 
 app = Flask(__name__)
 app.config['RESTX_MASK_SWAGGER'] = False

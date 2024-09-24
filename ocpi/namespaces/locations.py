@@ -25,6 +25,7 @@ from ocpi.models.location import (
 )
 from ocpi.namespaces import (
     get_header_parser,
+    raise_error_function,
     make_response,
     pagination_parser,
     token_required,
@@ -43,30 +44,35 @@ parser = get_header_parser(locations_ns)
 log = logging.getLogger("ocpi")
 
 def get_location(headers, url, **kwargs):
-    r=requests.get(f'{url.strip("/")}/{kwargs["location_id"]}',headers=headers)
-    if r.status_code!=200: raise oe.InvalidLocationError
-    json_r = r.json()
-    if json_r["status_code"]!=1000: raise oe.InvalidLocationError
-    if not json_r["data"]: raise oe.InvalidLocationError
-    log.info(json_r["data"])
-    return json_r["data"]
+    r=requests.get(f'{url.strip("/")}/{kwargs["location_id"]}',headers=headers).json()
+    return r["data"]
     
 def location_exists(f):
     @wraps(f)
     def decorated(self,*args, **kwargs):
-        exists=self.locationmanager.getLocation(kwargs["country_code"],kwargs["party_id"],kwargs["location_id"])
-        if exists:
+        try:
+            print(request.method)
+            if request.method=="PUT": 
+                if "connector_id" in kwargs: self.locationmanager.getEVSE(kwargs["country_code"],kwargs["party_id"],kwargs["location_id"],kwargs["evse_uid"])
+                elif "evse_uid" in kwargs: self.locationmanager.getLocation(kwargs["country_code"],kwargs["party_id"],kwargs["location_id"])
+            else:
+                if "connector_id" in kwargs: self.locationmanager.getConnector(kwargs["country_code"],kwargs["party_id"],kwargs["location_id"],kwargs["evse_uid"],kwargs["connector_id"])
+                elif "evse_uid" in kwargs: self.locationmanager.getEVSE(kwargs["country_code"],kwargs["party_id"],kwargs["location_id"],kwargs["evse_uid"])
+                else: self.locationmanager.getLocation(kwargs["country_code"],kwargs["party_id"],kwargs["location_id"])
             return f(self,*args, **kwargs)
-        else:
-            authToken = request.headers.get("Authorization")
-            token = authToken.replace("Token ", "").strip()
+        except oe.InvalidLocationError:
+            token = request.headers.get("Authorization").replace("Token ", "").strip()
             credMan = SingleCredMan.getInstance()
             client_token = credMan.getToken(token).get("client_token")
-            location=get_location(credMan.createOcpiHeader(client_token),
-                         credMan.getModuleEndpoint(token,"locations"), 
-                         **kwargs)
-            self.locationmanager.putLocation(kwargs["country_code"], kwargs["party_id"], kwargs["location_id"], location)
-            return f(self,*args, **kwargs)
+            try:
+                location=get_location(credMan.createOcpiHeader(client_token),
+                            credMan.getModuleEndpoint(token,"locations"),   
+                            **kwargs)
+                self.locationmanager.putLocation(kwargs["country_code"], kwargs["party_id"], kwargs["location_id"], location)
+                return f(self,*args, **kwargs)
+            except Exception as e:
+                print(e)
+                return make_response(raise_error_function,oe.InvalidLocationError)
 
     return decorated
 
@@ -103,7 +109,7 @@ def receiver():
 
 
         @token_required
-        @locations_ns.marshal_with(resp(locations_ns, Location))
+        @locations_ns.marshal_with(resp(locations_ns, Location), skip_none=True)
         def get(self, country_code, party_id, location_id):
             """
             Get Location by ID
@@ -130,9 +136,9 @@ def receiver():
             )
 
         @token_required
-        @location_exists
         @locations_ns.expect(LocationOptional)
         @locations_ns.marshal_with(respEmpty(locations_ns))
+        @location_exists
         def patch(self, country_code, party_id, location_id):
             """
             Partially update Location
@@ -157,9 +163,6 @@ def receiver():
 
         @locations_ns.marshal_with(resp(locations_ns, EVSE))
         def get(self, country_code, party_id, location_id, evse_uid):
-            """
-            Get EVSE by ID
-            """
             return make_response(
                 self.locationmanager.getEVSE,
                 country_code,
@@ -169,13 +172,10 @@ def receiver():
             )
 
         @token_required
-        @location_exists
         @locations_ns.expect(EVSE)
         @locations_ns.marshal_with(respEmpty(locations_ns))
+        @location_exists
         def put(self, country_code, party_id, location_id, evse_uid):
-            """
-            Add/Replace EVSE by ID
-            """
             return make_response(
                 self.locationmanager.putEVSE,
                 country_code,
@@ -186,13 +186,10 @@ def receiver():
             )
 
         @token_required
-        @location_exists
         @locations_ns.expect(EVSEOptional)
         @locations_ns.marshal_with(respEmpty(locations_ns))
+        @location_exists
         def patch(self, country_code, party_id, location_id, evse_uid):
-            """
-            Partially update EVSE
-            """
             return make_response(
                 self.locationmanager.patchEVSE,
                 country_code,
@@ -224,9 +221,9 @@ def receiver():
             )
 
         @token_required
-        @location_exists
         @locations_ns.expect(Connector)
         @locations_ns.marshal_with(respEmpty(locations_ns))
+        @location_exists
         def put(self, country_code, party_id, location_id, evse_uid, connector_id):
             """
             Add/Replace Connector by ID
@@ -242,9 +239,9 @@ def receiver():
             )
         
         @token_required
-        @location_exists
         @locations_ns.expect(ConnectorOptional)
         @locations_ns.marshal_with(respEmpty(locations_ns))
+        @location_exists
         def patch(self, country_code, party_id, location_id, evse_uid, connector_id):
             """
             Partially update Connector

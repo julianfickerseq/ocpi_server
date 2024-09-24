@@ -1,9 +1,18 @@
 #
 
 from __future__ import annotations
-
+from datetime import datetime
 from flask_restx import fields,model
 
+class ISO8601ZDateTime(fields.Raw):
+    __schema_type__ = "string"
+    __schema_format__ = "date-time"
+
+    def format(self, value):
+        if isinstance(value, datetime):
+            return value.strftime('%Y-%m-%dT%H:%M:%SZ')
+        elif isinstance(value, str):
+            return value
 
 def respRaw(namespace, model):
     return namespace.model(
@@ -25,10 +34,10 @@ def resp(namespace, model):
     return namespace.model(
         model.name + "Response",
         {
-            "data": fields.Nested(model),
+            "data": fields.Nested(model, skip_none=True),
             "status_code": fields.Integer(required=True),
             #"status_message": fields.String(),
-            "timestamp": fields.DateTime(required=True),
+            "timestamp": ISO8601ZDateTime(required=True),
         },
     )
 
@@ -37,8 +46,8 @@ def respEmpty(namespace):
         "Empty Response",
         {
             "status_code": fields.Integer(required=True),
-            "timestamp": fields.DateTime(required=True),
-        },
+            "timestamp": ISO8601ZDateTime(required=True),
+        },  
     )
 
 def respList(namespace, model):
@@ -49,7 +58,7 @@ def respList(namespace, model):
     return namespace.model(
         model.name + "Response",
         {
-            "data": fields.List(fields.Nested(model)),
+            "data": fields.List(fields.Nested(model, skip_none=True)),
             "status_code": fields.Integer(required=True),
             #"status_message": fields.String(),
             "timestamp": fields.DateTime(required=True),

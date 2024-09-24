@@ -78,6 +78,8 @@ def get_header_parser(namespace):
 
     return parser
 
+def raise_error_function(Exception:Exception):
+    raise Exception
 
 def make_response(function, *args, **kwargs):
     headers = None
@@ -86,6 +88,7 @@ def make_response(function, *args, **kwargs):
     status_code = 1000
     data = []
     try:
+        log.info("executing Function")
         result = function(*args, **kwargs)
         if type(result) == tuple:
             data, headers = result
@@ -93,12 +96,11 @@ def make_response(function, *args, **kwargs):
             data = result
     except oe.OcpiError as e:
         log.error(e)
-        #status_message = e.message
         status_code = e.status_code
-    except Exception as e:
-        log.error(e)
-        #status_message = f"Error {e}"
-        status_code = 3000
+        
+    # except Exception as e:
+    #     log.error(e)
+    #     status_code = 3000
 
     return (
         {

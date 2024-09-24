@@ -13,6 +13,7 @@ from flask_restx import Model, fields
 
 from ocpi.models import duplicateOptional
 from ocpi.models.types import CaseInsensitiveString, DisplayText
+from ocpi.models import ISO8601ZDateTime
 
 AdditionalGeoLocation = Model(
     "AdditionalGeoLocation",
@@ -30,6 +31,7 @@ AdditionalGeoLocation = Model(
         "name": fields.Nested(
             DisplayText,
             description="Name of the point in local language or as written at the location.",
+            skip_none=True
         ),
     },
 )
@@ -141,8 +143,8 @@ EnergyMix = Model(
         "is_green_energy": fields.Boolean(
             required=True, description="True if 100% from regenerative sources."
         ),
-        "energy_sources": fields.List(fields.Nested(EnergySource)),
-        "environ_impact": fields.List(fields.Nested(EnvironmentalImpact)),
+        "energy_sources": fields.List(fields.Nested(EnergySource,skip_none=True)),
+        "environ_impact": fields.List(fields.Nested(EnvironmentalImpact,skip_none=True)),
         "supplier_name": fields.String(max_length=64, description="Supplier Name"),
         "energy_product_name": fields.String(max_length=64, description="Energy Product Name"),
     },
@@ -228,7 +230,7 @@ BusinessDetails = Model(
             max_length=100, required=True, description="Name of the operator"
         ),
         "website": fields.String(description="Link to the operator's website"),
-        "logo": fields.Nested(Image, description="Image link to the operator’s logo."),
+        "logo": fields.Nested(Image, description="Image link to the operator’s logo.",skip_none=True),
     },
 )
 
@@ -256,10 +258,10 @@ RegularHours = Model(
 ExceptionalPeriod = Model(
     "ExceptionalPeriod",
     {
-        "period_begin": fields.DateTime(
+        "period_begin": ISO8601ZDateTime(
             required=True, description="Begin of the exception."
         ),
-        "period_end": fields.DateTime(
+        "period_end": ISO8601ZDateTime(
             required=True, description="End of the exception."),
     },
 )
@@ -279,7 +281,7 @@ Hours = Model(
     "Hours",
     {
         "regular_hours": fields.List(
-            fields.Nested(RegularHours),
+            fields.Nested(RegularHours,skip_none=True),
             description="Regular hours, weekday-based. Only to be used if twentyfourseven=false, then this field needs to contain at least one RegularHours object.",
         ),
         "twentyfourseven": fields.Boolean(
@@ -287,11 +289,11 @@ Hours = Model(
             description="True to represent 24 hours a day and 7 days a week, except the given exceptions.",
         ),
         "exceptional_openings": fields.List(
-            fields.Nested(ExceptionalPeriod),
+            fields.Nested(ExceptionalPeriod,skip_none=True),
             description="Regular hours, weekday-based. Only to be used if twentyfourseven=false, then this field needs to contain at least one RegularHours object.",
         ),
         "exceptional_closings": fields.List(
-            fields.Nested(ExceptionalPeriod),
+            fields.Nested(ExceptionalPeriod,skip_none=True),
             description="Regular hours, weekday-based. Only to be used if twentyfourseven=false, then this field needs to contain at least one RegularHours object.",
         ),
     },
@@ -300,10 +302,10 @@ Hours = Model(
 StatusSchedule = Model(
     "StatusSchedule",
     {
-        "period_begin": fields.DateTime(
+        "period_begin": ISO8601ZDateTime(
             required=True, description="Begin of the scheduled period."
         ),
-        "period_end": fields.DateTime(
+        "period_end": ISO8601ZDateTime(
             description="End of the scheduled period, if known."
         ),
         "status": fields.String(
@@ -351,7 +353,7 @@ Connector = Model(
         "terms_and_conditions": fields.String(
             description="URL to the operator’s terms and conditions."
         ),
-        "last_updated": fields.DateTime(
+        "last_updated": ISO8601ZDateTime(
             required=True,
             description="Timestamp when this Connector was last updated (or created).",
         ),
@@ -377,7 +379,7 @@ EVSE = Model(
             description="Indicates the current status of the EVSE.",
         ),
         "status_schedule": fields.List(
-            fields.Nested(StatusSchedule),
+            fields.Nested(StatusSchedule,skip_none=True),
             description="Indicates a planned status update of the EVSE.",
         ),
         "capabilities": fields.List(
@@ -385,7 +387,7 @@ EVSE = Model(
             description="List of functionalities that the EVSE is capable of.",
         ),
         "connectors": fields.List(
-            fields.Nested(Connector),
+            fields.Nested(Connector,skip_none=True),
             required=True,
             description="List of available connectors on the EVSE.",
         ),
@@ -394,14 +396,14 @@ EVSE = Model(
             description="Level on which the Charge Point is located (in garage buildings) in the locally displayed numbering scheme.",
         ),
         "coordinates": fields.Nested(
-            GeoLocation, max_length=255, description="Coordinates of the EVSE."
+            GeoLocation, max_length=255, description="Coordinates of the EVSE.",skip_none=True
         ),
         "physical_reference": fields.String(
             max_length=16,
             description="A number/string printed on the outside of the EVSE for visual identification.",
         ),
         "directions": fields.List(
-            fields.Nested(DisplayText),
+            fields.Nested(DisplayText,skip_none=True),
             description="Multi-language human-readable directions when more detailed information on how to reach the EVSE from the Location is required.",
         ),
         "parking_restrictions": fields.List(
@@ -409,10 +411,10 @@ EVSE = Model(
             description="The restrictions that apply to the parking spot.",
         ),
         "images": fields.List(
-            fields.Nested(Image),
+            fields.Nested(Image,skip_none=True),
             description="Links to images related to the EVSE such as photos or logos.",
         ),
-        "last_updated": fields.DateTime(
+        "last_updated": ISO8601ZDateTime(
             required=True,
             description="Timestamp when this EVSE or one of its Connectors were last updated (or created).",
         ),
@@ -456,29 +458,30 @@ Location = Model(
             description="ISO 3166-1 alpha-3 code for the country of this location.",
         ),
         "coordinates": fields.Nested(
-            GeoLocation, required=True, description="Coordinates of the location."
+            GeoLocation, required=True, description="Coordinates of the location.", skip_none=True
         ),
         "related_locations": fields.List(
-            fields.Nested(AdditionalGeoLocation),
+            fields.Nested(AdditionalGeoLocation, skip_none=True),
             description="Geographical location of related points relevant to the user.",
         ),
         "evses": fields.List(
-            fields.Nested(EVSE),
+            fields.Nested(EVSE, skip_none=True),
             description="List of EVSEs that belong to this Location.",
         ),
         "directions": fields.List(
-            fields.Nested(DisplayText),
+            fields.Nested(DisplayText, skip_none=True),
             description="Human-readable directions on how to reach the location."
         ),
         "operator": fields.Nested(
             BusinessDetails,
             description="Information of the operator. When not specified, the information retrieved from the Credentials module should be used instead.",
+            skip_none=True
         ),
         "suboperator": fields.Nested(
-            BusinessDetails, description="Information of the suboperator if available."
+            BusinessDetails, description="Information of the suboperator if available.", skip_none=True
         ),
         "owner": fields.Nested(
-            BusinessDetails, description="Information of the owner if available."
+            BusinessDetails, description="Information of the owner if available.", skip_none=True
         ),
         "facilities": fields.List(
             fields.String(
@@ -493,19 +496,20 @@ Location = Model(
         "opening_times": fields.Nested(
             Hours,
             description="The times when the EVSEs at the location can be accessed for charging.",
+            skip_none=True
         ),
         "charging_when_closed": fields.Boolean(
             default=True,
             description="Indicates if the EVSEs are still charging outside the opening hours of the location.",
         ),
         "images": fields.List(
-            fields.Nested(Image),
+            fields.Nested(Image, skip_none=True),
             description="Links to images related to the location such as photos or logos.",
         ),
         "energy_mix": fields.Nested(
-            EnergyMix, description="Details on the energy supplied at this location."
+            EnergyMix, description="Details on the energy supplied at this location.", skip_none=True
         ),
-        "last_updated": fields.DateTime(
+        "last_updated": ISO8601ZDateTime(
             required=True,
             description="Timestamp when this Location or one of its EVSEs or Connectors were last updated (or created).",
         ),

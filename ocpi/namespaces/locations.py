@@ -45,13 +45,13 @@ log = logging.getLogger("ocpi")
 
 def get_location(headers, url, **kwargs):
     r=requests.get(f'{url.strip("/")}/{kwargs["location_id"]}',headers=headers).json()
+    print(f'getting data from {url.strip("/")}/{kwargs["location_id"]}:\n{r}')
     return r["data"]
     
 def location_exists(f):
     @wraps(f)
     def decorated(self,*args, **kwargs):
         try:
-            print(request.method)
             if request.method=="PUT": 
                 if "connector_id" in kwargs: self.locationmanager.getEVSE(kwargs["country_code"],kwargs["party_id"],kwargs["location_id"],kwargs["evse_uid"])
                 elif "evse_uid" in kwargs: self.locationmanager.getLocation(kwargs["country_code"],kwargs["party_id"],kwargs["location_id"])
@@ -108,7 +108,7 @@ def receiver():
 
 
 
-        @token_required
+        @token_required()
         @locations_ns.marshal_with(resp(locations_ns, Location), skip_none=True)
         def get(self, country_code, party_id, location_id):
             """
@@ -119,7 +119,7 @@ def receiver():
                 self.locationmanager.getLocation, country_code, party_id, location_id
             )
 
-        @token_required
+        @token_required()
         @locations_ns.expect(Location)
         @locations_ns.marshal_with(respEmpty(locations_ns))
         def put(self, country_code, party_id, location_id):
@@ -135,7 +135,7 @@ def receiver():
                 locations_ns.payload,
             )
 
-        @token_required
+        @token_required()
         @locations_ns.expect(LocationOptional)
         @locations_ns.marshal_with(respEmpty(locations_ns))
         @location_exists
@@ -171,7 +171,7 @@ def receiver():
                 evse_uid,
             )
 
-        @token_required
+        @token_required()
         @locations_ns.expect(EVSE)
         @locations_ns.marshal_with(respEmpty(locations_ns))
         @location_exists
@@ -185,7 +185,7 @@ def receiver():
                 locations_ns.payload,
             )
 
-        @token_required
+        @token_required()
         @locations_ns.expect(EVSEOptional)
         @locations_ns.marshal_with(respEmpty(locations_ns))
         @location_exists
@@ -220,7 +220,7 @@ def receiver():
                 connector_id,
             )
 
-        @token_required
+        @token_required()
         @locations_ns.expect(Connector)
         @locations_ns.marshal_with(respEmpty(locations_ns))
         @location_exists
@@ -238,7 +238,7 @@ def receiver():
                 locations_ns.payload,
             )
         
-        @token_required
+        @token_required()
         @locations_ns.expect(ConnectorOptional)
         @locations_ns.marshal_with(respEmpty(locations_ns))
         @location_exists
@@ -295,7 +295,7 @@ def sender():
             }
         )
         @locations_ns.marshal_with(respList(locations_ns, Location))
-        @token_required
+        @token_required("lala")
         @locations_ns.header("Link", "Link to the next ressource")
         @locations_ns.header(
             "X-Total-Count",
@@ -326,6 +326,9 @@ def makeLocationNamespace(role):
     if role == "SENDER":
         sender()
     elif role == "RECEIVER":
+        receiver()
+    elif role == "BOTH":
+        sender()
         receiver()
     else:
         raise Exception("invalid role")

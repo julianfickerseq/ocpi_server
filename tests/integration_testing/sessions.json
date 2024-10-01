@@ -1,0 +1,158 @@
+{
+  "to_put": {
+    "id": "BEEQS217609779",
+    "auth_method": "WHITELIST",
+    "currency": "EUR",
+    "last_updated": "2024-09-30T11:49:16Z",
+    "auth_id": "NLLMSC20617814",
+    "location": {
+      "id": "89343896",
+      "type": "UNKNOWN",
+      "address": "Vantegemstraat 39",
+      "city": "Wetteren",
+      "postal_code": "9230",
+      "country": "BEL",
+      "coordinates": {
+        "latitude": "50.974833",
+        "longitude": "3.836913"
+      },
+      "charging_when_closed": false,
+      "time_zone": "Europe/Brussels",
+      "operator": {
+        "name": "Equans Mobility Belux",
+        "website": "https://www.equans.be"
+      },
+      "suboperator": {
+        "name": "Equans Mobility Belux",
+        "website": "https://www.equans.be"
+      },
+      "owner": {
+        "name": "Equans Mobility Belux",
+        "website": "https://www.equans.be"
+      },
+      "name": "Equans Real Estate Wetteren",
+      "directions": [
+        {
+          "language": "en",
+          "text": "Car park blocked by barrier"
+        }
+      ],
+      "opening_times": {
+        "twentyfourseven": true
+      },
+      "last_updated": "2024-09-30T11:39:05Z",
+      "evses": [
+        {
+          "uid": "1000113663*1",
+          "evse_id": "BEEQSE1000113663*1",
+          "status": "CHARGING",
+          "last_updated": "2024-09-30T11:39:05Z",
+          "capabilities": [
+            "RFID_READER",
+            "REMOTE_START_STOP_CAPABLE",
+            "CHARGING_PROFILE_CAPABLE",
+            "RESERVABLE"
+          ],
+          "physical_reference": "BEEQSCS000000079",
+          "connectors": [
+            {
+              "id": "1",
+              "standard": "IEC_62196_T2",
+              "format": "SOCKET",
+              "power_type": "AC_3_PHASE",
+              "voltage": 230,
+              "amperage": 32,
+              "last_updated": "2024-09-30T11:39:05Z",
+              "tariff_id": "213773848"
+            }
+          ]
+        }
+      ]
+    },
+    "total_cost": 0,
+    "kwh": 27.146,
+    "status": "ACTIVE",
+    "start_datetime": "2024-09-30T04:50:24Z"
+  },
+  "to_patch": {
+    "last_updated": "2024-09-30T11:49:33Z",
+    "kwh": 2.53,
+    "status": "ACTIVE",
+    "start_datetime": "2024-09-30T11:04:21Z"
+  },
+  "to_get": {
+    "id": "BEEQS217609779",
+    "auth_method": "WHITELIST",
+    "currency": "EUR",
+    "last_updated": "2024-09-30T11:49:33Z",
+    "auth_id": "NLLMSC20617814",
+    "location": {
+      "id": "89343896",
+      "type": "UNKNOWN",
+      "address": "Vantegemstraat 39",
+      "city": "Wetteren",
+      "postal_code": "9230",
+      "country": "BEL",
+      "coordinates": {
+        "latitude": "50.974833",
+        "longitude": "3.836913"
+      },
+      "charging_when_closed": false,
+      "time_zone": "Europe/Brussels",
+      "operator": {
+        "name": "Equans Mobility Belux",
+        "website": "https://www.equans.be"
+      },
+      "suboperator": {
+        "name": "Equans Mobility Belux",
+        "website": "https://www.equans.be"
+      },
+      "owner": {
+        "name": "Equans Mobility Belux",
+        "website": "https://www.equans.be"
+      },
+      "name": "Equans Real Estate Wetteren",
+      "directions": [
+        {
+          "language": "en",
+          "text": "Car park blocked by barrier"
+        }
+      ],
+      "opening_times": {
+        "twentyfourseven": true
+      },
+      "last_updated": "2024-09-30T11:39:05Z",
+      "evses": [
+        {
+          "uid": "1000113663*1",
+          "evse_id": "BEEQSE1000113663*1",
+          "status": "CHARGING",
+          "last_updated": "2024-09-30T11:39:05Z",
+          "capabilities": [
+            "RFID_READER",
+            "REMOTE_START_STOP_CAPABLE",
+            "CHARGING_PROFILE_CAPABLE",
+            "RESERVABLE"
+          ],
+          "physical_reference": "BEEQSCS000000079",
+          "connectors": [
+            {
+              "id": "1",
+              "standard": "IEC_62196_T2",
+              "format": "SOCKET",
+              "power_type": "AC_3_PHASE",
+              "voltage": 230,
+              "amperage": 32,
+              "last_updated": "2024-09-30T11:39:05Z",
+              "tariff_id": "213773848"
+            }
+          ]
+        }
+      ]
+    },
+    "total_cost": 0,
+    "kwh": 2.53,
+    "status": "ACTIVE",
+    "start_datetime": "2024-09-30T11:04:21Z"
+  }
+}

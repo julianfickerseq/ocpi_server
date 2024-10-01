@@ -14,6 +14,7 @@ from ocpi.models import duplicateOptional
 
 from ocpi.models.types import CaseInsensitiveString
 from ocpi.models.location import Location
+from ocpi.models import ISO8601ZDateTime
 
 ############### Session Models ###############
 
@@ -46,12 +47,12 @@ CdrDimension = Model(
 ChargingPeriod = Model(
     "ChargingPeriod",
     {
-        "start_date_time": fields.DateTime(
+        "start_date_time": ISO8601ZDateTime(
             required=True,
             description="Start timestamp of the charging period. A period ends when the next period starts. The last period ends when the session ends.",
         ),
         "dimensions": fields.List(
-            fields.Nested(CdrDimension),
+            fields.Nested(CdrDimension, skip_none=True),
             required=True,
             description="List of relevant values for this charging period.",
         ),
@@ -59,6 +60,8 @@ ChargingPeriod = Model(
 )
 
 session_status = ["ACTIVE", "COMPLETED", "INVALID", "PENDING"]
+
+auth_methods = ["AUTH_REQUEST", "WHITELIST"]
 
 Session = Model(
     "BaseSession",
@@ -68,11 +71,11 @@ Session = Model(
             required=True,
             description="The unique id that identifies the charging session in the CPO platform.",
         ),
-        "start_datetime": fields.DateTime(
+        "start_datetime": ISO8601ZDateTime(
             required=True,
             description="The timestamp when the session became ACTIVE in the Charge Point.",
         ),
-        "end_datetime": fields.DateTime(
+        "end_datetime": ISO8601ZDateTime(
             description="The timestamp when the session was completed/finished, charging might have finished before the session ends, for example: EV is full, but parking cost also has to be paid."
         ),
         "kwh": fields.Float(
@@ -83,10 +86,17 @@ Session = Model(
             required=True,
             description="Reference to a token, identified by the auth_id field of the Token."
         ),
+        "auth_method": fields.String(
+            enum=auth_methods,
+            required=True,
+            description="Method used for authentication.",
+            skip_none=True
+        ),
         "location": fields.Nested(
             Location,
             required=True,
             description="The location where this session took place, including only the relevant EVSE and connector.",
+            skip_none=True
         ),
         "meter_id": fields.String(
             max_length=255, description="Optional identification of the kWh meter."
@@ -97,7 +107,7 @@ Session = Model(
             description="ISO 4217 code of the currency used for this session.",
         ),
         "charging_periods": fields.List(
-            fields.Nested(ChargingPeriod),
+            fields.Nested(ChargingPeriod, skip_none=True),
             description="An optional list of Charging Periods that can be used to calculate and verify the total cost.",
         ),
         "total_cost": fields.Float(
@@ -109,7 +119,7 @@ Session = Model(
             default="PENDING",
             description="The status of the session.",
         ),
-        "last_updated": fields.DateTime(
+        "last_updated": ISO8601ZDateTime(
             description="Timestamp when this Session was last updated (or created)."
         ),
     },

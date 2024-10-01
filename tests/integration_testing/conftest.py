@@ -3,6 +3,7 @@ import sys, json, os
 from main import app
 import requests_mock
 from pymongo import MongoClient
+from copy import deepcopy
 
 
 CONNECTION_STRING = f'mongodb://{os.environ["MONGO_USER"]}:{os.environ["MONGO_PWD"]}@{os.environ["MONGO_HOST"]}:{os.environ["MONGO_PORT"]}'
@@ -63,7 +64,6 @@ def mock_get_evse():
             } 
         )
         d_101=data["89828753"].copy()
-        d_101["id"]="101"
         d_101["evses"][0]["uid"]="404"
         requests_mocker.get(
             "http://localhost:5001/api/ocpi/cpo/2.1.1/locations/101",
@@ -89,7 +89,7 @@ def mock_get_evse():
 @pytest.fixture
 def mock_get_connector():
     with requests_mock.Mocker() as requests_mocker:
-        conn404=data["89828753"].copy()
+        conn404=deepcopy(data["89828753"])
         conn404["id"]="conn404"
         requests_mocker.get(
             "http://localhost:5001/api/ocpi/cpo/2.1.1/locations/conn404",
@@ -100,26 +100,38 @@ def mock_get_connector():
                 "data":conn404,
             } 
         )
-        d_101=data["89828753"]
-        d_101["id"]="101"
-        d_101["evses"][0]["uid"]="404"
+        unk_conn=deepcopy(data["89828753"])
+        unk_conn["evses"][0]["uid"]="404"
         requests_mocker.get(
             "http://localhost:5001/api/ocpi/cpo/2.1.1/locations/101",
             request_headers={"Authorization": "Token "+client_cred["client_token"]},
             status_code=200,
             json={
                 "status_code":1000,
-                "data":d_101,
+                "data":unk_conn,
             } 
         )
-        d_101["id"]="404"
+        unk_location=deepcopy(data["89828753"])
+        unk_location["id"]="unknown_location"
+        requests_mocker.get(
+            "http://localhost:5001/api/ocpi/cpo/2.1.1/locations/unknown_location",
+            request_headers={"Authorization": "Token "+client_cred["client_token"]},
+            status_code=200,
+            json={
+                "status_code":1000,
+                "data":unk_location,
+            } 
+        )
+        unk_evse=deepcopy(data["89828753"])
+        unk_evse["id"]="404"
+        unk_evse["evses"][0]["uid"]="unk_evse"
         requests_mocker.get(
             "http://localhost:5001/api/ocpi/cpo/2.1.1/locations/404",
             request_headers={"Authorization": "Token "+client_cred["client_token"]},
             status_code=200,
             json={
                 "status_code":1000,
-                "data":d_101,
+                "data":unk_evse,
             } 
         )
         yield

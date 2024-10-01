@@ -1,7 +1,6 @@
 import json
-import sys, os, pathlib
+import sys
 import logging
-import requests
 from copy import deepcopy
 
 logging.getLogger('ocpi')
@@ -58,7 +57,6 @@ def test_put_evse(client,headers):
     r_put=client.put("/ocpi/emsp/2.1.1/locations/BE/TEST/89900877/100",json=evse_100,headers=headers)
     assert r_put.status_code==200 and r_put.json["status_code"]==1000
     
-"""
     
 def test_get_wrong_evse(client,headers):
     r_get=client.get("/ocpi/emsp/2.1.1/locations/BE/TEST/89900877/101",headers=headers)
@@ -78,9 +76,10 @@ def test_patch_get_evse(client,headers):
     assert evse==r_get.json["data"]
     
 def test_patch_evse_unknown_evse(client,headers,mock_get_evse):
-    r_patch=client.patch("/ocpi/emsp/2.1.1/locations/BE/TEST/101/404",json={"status": "CHARGING"},headers=headers)
+    r_patch=client.patch("/ocpi/emsp/2.1.1/locations/BE/TEST/89828753/404",json={"status": "CHARGING"},headers=headers)
     assert r_patch.status_code==200 and r_patch.json["status_code"]==1000
-    r_get=client.get("/ocpi/emsp/2.1.1/locations/BE/TEST/101/404",headers=headers)
+    r_get=client.get("/ocpi/emsp/2.1.1/locations/BE/TEST/89828753/404",headers=headers)
+    print(r_get.json)
     assert r_get.json["data"]["status"]=="CHARGING"
     
 def test_patch_evse_unknown_location(client,headers,mock_get_evse):
@@ -100,6 +99,10 @@ connector["id"]="0"
 def test_put_connector(client,headers):
     r_put=client.put("/ocpi/emsp/2.1.1/locations/BE/TEST/89900877/100/0",json=connector,headers=headers)
     assert r_put.status_code==200 and r_put.json["status_code"]==1000
+    
+def test_put_existing_connector(client,headers):
+    r_put=client.put("/ocpi/emsp/2.1.1/locations/BE/TEST/89900877/100/0",json=connector,headers=headers)
+    assert r_put.status_code==200 and r_put.json["status_code"]==1000
 
 def test_get_wrong_connector(client,headers):
     r_get=client.get("/ocpi/emsp/2.1.1/locations/BE/TEST/89900877/101/9",headers=headers)
@@ -107,18 +110,27 @@ def test_get_wrong_connector(client,headers):
     
 def test_put_connector_unknown_location(client,headers,mock_get_connector):
     r_put=client.put("/ocpi/emsp/2.1.1/locations/BE/TEST/conn404/1000143862*1/1",json=data["89828753"]["evses"][0]["connectors"][0],headers=headers)
-    print(r_put.text)
     assert r_put.status_code==200 and r_put.json["status_code"]==1000
     r_get=client.get("/ocpi/emsp/2.1.1/locations/BE/TEST/conn404/1000143862*1/1",headers=headers)
     assert data["89828753"]["evses"][0]["connectors"][0]==r_get.json["data"]
     
 def test_put_connector_unknown_evse(client,headers,mock_get_connector):
-    assert True
+    r_put=client.put("/ocpi/emsp/2.1.1/locations/BE/TEST/89828753/404/1",json=data["89828753"]["evses"][0]["connectors"][0],headers=headers)
+    assert r_put.status_code==200 and r_put.json["status_code"]==1000
+    r_get=client.get("/ocpi/emsp/2.1.1/locations/BE/TEST/89828753/404/1",headers=headers)
+    assert data["89828753"]["evses"][0]["connectors"][0]==r_get.json["data"]
 
 def test_patch_connector_unknown_location(client,headers,mock_get_connector):
-    assert True
+    r_patch=client.patch("/ocpi/emsp/2.1.1/locations/BE/TEST/unknown_location/404/1",json={"tariff_id": "0"},headers=headers)
+    assert r_patch.status_code==200 and r_patch.json["status_code"]==1000
+    r_get=client.get("/ocpi/emsp/2.1.1/locations/BE/TEST/unknown_location/404/1",headers=headers)
+    assert r_get.json["data"]["tariff_id"]=="0"
 
 def test_patch_connector_unknown_evse(client,headers,mock_get_connector):
+    r_patch=client.patch("/ocpi/emsp/2.1.1/locations/BE/TEST/404/unk_evse/1",json={"tariff_id": "0"},headers=headers)
+    assert r_patch.status_code==200 and r_patch.json["status_code"]==1000
+    r_get=client.get("/ocpi/emsp/2.1.1/locations/BE/TEST/404/unk_evse/1",headers=headers)
+    assert r_get.json["data"]["tariff_id"]=="0"
     assert True
     
 def test_put_connector_wrong_location(client,headers,mock_get_connector):
@@ -126,12 +138,16 @@ def test_put_connector_wrong_location(client,headers,mock_get_connector):
     assert r_put.status_code==200 and r_put.json["status_code"]==2003
     
 def test_put_connector_wrong_evse(client,headers,mock_get_connector):
-    assert True
+    r_put=client.put("/ocpi/emsp/2.1.1/locations/BE/TEST/89900877/wrong/1",json=data["89828753"]["evses"][0]["connectors"][0],headers=headers)
+    assert r_put.status_code==200 and r_put.json["status_code"]==2003
 
 def test_patch_connector_wrong_location(client,headers,mock_get_connector):
-    assert True
+    r_patch=client.patch("/ocpi/emsp/2.1.1/locations/BE/TEST/wrong/l/1",json={"tariff_id": "CHARGING"},headers=headers)
+    assert r_patch.json["status_code"]==2003
 
 def test_patch_connector_wrong_evse(client,headers,mock_get_connector):
-    assert True
+    r_patch=client.patch("/ocpi/emsp/2.1.1/locations/BE/TEST/89900877/wrong/1",json={"tariff_id": "CHARGING"},headers=headers)
+    assert r_patch.json["status_code"]==2003
+"""
 
 """

@@ -18,7 +18,6 @@ import ocpi.exceptions as oe
 
 log = logging.getLogger("ocpi")
 
-
 class SingleCredMan:
     __instance = None
 
@@ -31,17 +30,32 @@ class SingleCredMan:
     def setInstance(newInst):
         SingleCredMan.__instance = newInst
 
+def token_required(role=None):
+    def inner_decorator(f):
+        """Execute function if request contains valid access token."""
 
-def token_required(f):
-    """Execute function if request contains valid access token."""
+        @wraps(f)
+        def decorated(*args, **kwargs):
+            _check_access_token(role)
+            return f(*args, **kwargs)
 
-    @wraps(f)
-    def decorated(*args, **kwargs):
-        _check_access_token()
-        return f(*args, **kwargs)
+        return decorated
+    return inner_decorator
 
-    return decorated
+def _check_access_token(role):
+    authToken = request.headers.get("Authorization")
+    if not authToken:
+        raise Unauthorized(description="Unauthorized")
 
+    token = authToken.replace("Token ", "").strip()
+    man = SingleCredMan.getInstance()
+    if man == None:
+        raise Forbidden(description="not initialized")
+    if not man.isAuthenticated(token):
+        raise Forbidden(description="not authorized")
+    if role:
+        print("role was given")
+    return token
 
 def pagination_parser():
     parser = reqparse.RequestParser()
@@ -54,21 +68,6 @@ def pagination_parser():
     parser.add_argument("offset", type=int, default=0)
     parser.add_argument("limit", type=int, default=50)
     return parser
-
-
-def _check_access_token():
-    authToken = request.headers.get("Authorization")
-    if not authToken:
-        raise Unauthorized(description="Unauthorized")
-
-    token = authToken.replace("Token ", "").strip()
-    man = SingleCredMan.getInstance()
-    if man == None:
-        raise Forbidden(description="not initialized")
-    if not man.isAuthenticated(token):
-        raise Forbidden(description="not authorized")
-    return token
-
 
 def get_header_parser(namespace):
     parser = namespace.parser()

@@ -63,9 +63,9 @@ cm = om.CredentialsDictMan(cred_roles, HOST_URL)
 injected_objects = {
     'internal': {'role': 'RECEIVER', 'object': None},
     'credentials': {'role': 'SENDER', 'object': cm},
-    'locations': {'role': 'RECEIVER', 'object': loc},
+    'locations': {'role': os.environ["LOCATION_ROLE"], 'object': loc},
     #'commands': {'role': 'SENDER', 'object': commands},
-    'sessions': {'role': 'RECEIVER', 'object': ses},
+    'sessions': {'role': os.environ["SESSION_ROLE"], 'object': ses},
     #'reservations': {'role': 'SENDER', 'object': reservations},
     #'tokens': {'role': 'SENDER', 'object': om.TokensManager()},
     #'tariffs': {'role': 'SENDER', 'object': om.TariffsManager()},

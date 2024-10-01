@@ -62,7 +62,7 @@ def sender():
             }
         )
         @sessions_ns.marshal_with(respList(sessions_ns, Session))
-        @token_required
+        @token_required()
         def get(self):
             """
             Only Sessions with last_update between the given {date_from} (including) and {date_to} (excluding) will be returned.
@@ -93,7 +93,7 @@ def receiver():
             super().__init__(api, *args, **kwargs)
 
         @sessions_ns.marshal_with(resp(sessions_ns, Session), code=200)
-        @token_required
+        @token_required()
         def get(self, country_id, party_id, session_id):
             return make_response(
                 self.session_manager.getSession, country_id, party_id, session_id
@@ -101,7 +101,7 @@ def receiver():
 
         @sessions_ns.expect(Session)
         @sessions_ns.marshal_with(respEmpty(sessions_ns), code=201)
-        @token_required
+        @token_required()
         def put(self, country_id, party_id, session_id):
             """Add new Session"""
             session_id = session_id.upper()  # caseinsensitive
@@ -117,7 +117,7 @@ def receiver():
 
         @sessions_ns.expect(Session, validate=False)
         @sessions_ns.marshal_with(respEmpty(sessions_ns), code=201)
-        @token_required
+        @token_required()
         def patch(self, country_id, party_id, session_id):
             session_id = session_id.upper()  # caseinsensitive
             country_id = country_id.upper()
@@ -138,6 +138,9 @@ def makeSessionNamespace(role):
     if role == "SENDER":
         sender()
     elif role == "RECEIVER":
+        receiver()
+    elif role == "BOTH":
+        sender()
         receiver()
     else:
         raise Exception("invalid role")

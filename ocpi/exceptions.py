@@ -14,10 +14,13 @@ class OcpiError(Exception):
     def __init__(self, message=""):
         self.message = f"Generic Error {message}"
 
+class GenericClientError(OcpiError):
+    status_code = 2000
+    def __init__(self, message=""):
+        self.message = f"Generic client error {message}"
 
 class InvalidMissingParamsError(OcpiError):
     status_code = 2001
-
     def __init__(self, message=""):
         self.message = f"Missing param {message}"
 

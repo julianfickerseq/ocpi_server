@@ -220,6 +220,9 @@ class LocationManager():
         self.evses = ocpi_db["evses"]
         self.connectors = ocpi_db["connectors"]
 
+    def getLocations(self, begin, end, offset, limit):
+        return
+
     def getLocation(self, country_id, party_id, location_id):
         location=self.locations.find_one({"_id":f"{location_id}"})
         if location==None: raise oe.InvalidLocationError
@@ -331,22 +334,25 @@ class VersionManager:
     
 class SessionManager:
     def __init__(self):
-        self.sessions = {}
+        self.sessions = ocpi_db["sessions"]
 
     def getSessions(self, begin, end, offset, limit):
         log.info("get sessions")
         return list(self.sessions.values())[offset : offset + limit], {}
 
     def getSession(self, country_id, party_id, session_id):
-        log.info(f"getting session {session_id}")
-        return self.sessions[session_id]
+        session=self.sessions.find_one({"_id":f"{session_id}"})
+        if session==None: raise oe.GenericClientError("session not found")
+        session.pop("_id")
+        return session        
 
     def createSession(self, country_id, party_id, session):
-        log.info(f"create session {session}")
-        self.sessions[session["id"]]=session
+        self.sessions.insert_one({"_id":f"{session['id']}",**session})
 
     def patchSession(self, country_id, party_id, session_id, sessionPart):
-        log.info(f"patching session {session_id} with {sessionPart}")
-        self.sessions[session_id].update(sessionPart)
+        r=self.sessions.update_one({"_id":session_id},{"$set": sessionPart})
+        if r.matched_count<1: 
+            raise oe.GenericClientError("session ID not found")
+
 
 

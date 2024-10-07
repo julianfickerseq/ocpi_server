@@ -9,7 +9,7 @@ Created on Mon Mar 29 22:24:19 2021
 from __future__ import annotations
 
 from flask_restx import Model, fields
-
+from enum import Enum
 
 class CaseInsensitiveString(fields.String):
     def format(self, value):
@@ -34,10 +34,10 @@ role = [
     "CPO",  # Charge Point Operator Role.
     "EMSP",  # eMobility Service Provider Role.
     "HUB",  # Hub role.
-    # National Access Point Role (national Database with all Location information of a country).
-    "NAP",
-    # Navigation Service Provider Role, role like an eMSP (probably only interested in Location information).
-    "NSP",
+    "NAP", # National Access Point Role (national Database with all Location information of a country).
+    "NSP", # Navigation Service Provider Role, role like an eMSP (probably only interested in Location information).
     "OTHER",  # Other role.
     "SCSP",  # Smart Charging Service Provider Role.
+    "INTERNAL"
 ]
+Role=Enum("Role",role)

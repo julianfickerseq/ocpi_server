@@ -3,7 +3,10 @@ import json
 import os
 import logging
 from ocpi import createOcpiBlueprint
-import ocpi.managers as om
+import ocpi.managers.credentials as cm
+import ocpi.managers.locations as lm
+import ocpi.managers.sessions as sm
+
 from ocpi.namespaces import SingleCredMan
 
 from flask import Flask, redirect, request
@@ -52,17 +55,17 @@ cred_roles = [{
 
 # inject dependencies here
 # must have expected method signatures
-ses = om.SessionManager()
-loc = om.LocationManager()
+ses = sm.SessionManager()
+loc = lm.LocationManager()
 #commands = om.CommandsManager()
 #reservations = om.ReservationManager()
 # TODO maybe provide interface and inject with decorator..?
-cm = om.CredentialsDictMan(cred_roles, HOST_URL)
+cre = cm.CredentialsDictMan(cred_roles, HOST_URL)
 
 
 injected_objects = {
     'internal': {'role': 'RECEIVER', 'object': None},
-    'credentials': {'role': 'SENDER', 'object': cm},
+    'credentials': {'role': 'SENDER', 'object': cre},
     'locations': {'role': os.environ["LOCATION_ROLE"], 'object': loc},
     #'commands': {'role': 'SENDER', 'object': commands},
     'sessions': {'role': os.environ["SESSION_ROLE"], 'object': ses},
@@ -83,7 +86,7 @@ if os.path.exists(config):
     endpoints = None
 else:
     log.info(f'config file {config} does not exist')
-    cm._updateToken('TESTTOKEN', None, None)
+    cre._updateToken('TESTTOKEN', None, None)
 
 blueprint = createOcpiBlueprint(
     HOST_URL, injected_objects, url_prefix=url_prefix)

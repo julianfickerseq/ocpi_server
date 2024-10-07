@@ -15,6 +15,7 @@ from flask_restx.inputs import datetime_from_iso8601
 from werkzeug.exceptions import Forbidden, Unauthorized
 
 import ocpi.exceptions as oe
+from ocpi.models.credentials import Role
 
 log = logging.getLogger("ocpi")
 
@@ -30,43 +31,62 @@ class SingleCredMan:
     def setInstance(newInst):
         SingleCredMan.__instance = newInst
 
-def token_required(role=None):
+def token_required(rolesAllowed:list[Role]=[Role.CPO]):
     def inner_decorator(f):
         """Execute function if request contains valid access token."""
 
-        @wraps(f)
         def decorated(*args, **kwargs):
-            _check_access_token(role)
+            _check_access_token(rolesAllowed, *args, **kwargs)
             return f(*args, **kwargs)
 
         return decorated
     return inner_decorator
 
-def _check_access_token(role):
+def _check_access_token(rolesAllowed, *args, **kwargs):
+    token, credMan = get_token_and_cred_man()
+    if credMan == None:
+        raise Forbidden(description="not initialized")
+    role=Role[credMan.getRole(token)]
+    if not credMan.isAuthenticated(token) or Role[credMan.getRole(token)] not in rolesAllowed:
+        raise Forbidden(description="not authorized")
+    return
+
+def get_token_and_cred_man():
     authToken = request.headers.get("Authorization")
     if not authToken:
         raise Unauthorized(description="Unauthorized")
 
     token = authToken.replace("Token ", "").strip()
-    man = SingleCredMan.getInstance()
-    if man == None:
-        raise Forbidden(description="not initialized")
-    if not man.isAuthenticated(token):
-        raise Forbidden(description="not authorized")
-    if role:
-        print("role was given")
-    return token
+    credMan = SingleCredMan.getInstance()
+    return token,credMan
+
+def get_allowed_locations(f):
+    def decorated(*args, **kwargs):
+        token, credMan = get_token_and_cred_man()
+        kwargs["allowed_locations"] = credMan.getAllowedLocations(token)
+        return f(*args, **kwargs)
+    return decorated    
+
+def is_location_allowed(f):
+    def decorated(*args, **kwargs):
+        token, credMan = get_token_and_cred_man()
+        role=Role[credMan.getRole(token)]
+        if role is Role.SCSP:
+            if not credMan.isLocationAllowed(token, kwargs["location_id"]):
+                raise Forbidden(description="location not authorized")        
+        return f(*args, **kwargs)
+    return decorated    
 
 def pagination_parser():
     parser = reqparse.RequestParser()
     parser.add_argument(
-        "from", type=datetime_from_iso8601, default="2021-01-01T13:30:00+02:00"
+        "date_from", default="2000-01-01T00:00:00Z"
     )
     parser.add_argument(
-        "to", type=datetime_from_iso8601, default="2038-01-01T13:30:00+02:00"
+        "date_to", default="2099-01-01T00:00:00Z"
     )
     parser.add_argument("offset", type=int, default=0)
-    parser.add_argument("limit", type=int, default=50)
+    parser.add_argument("limit", type=int, default=100)
     return parser
 
 def get_header_parser(namespace):
@@ -83,11 +103,9 @@ def raise_error_function(Exception:Exception):
 def make_response(function, *args, **kwargs):
     headers = None
     http_code = 200
-    #status_message = "OK"
     status_code = 1000
     data = []
     try:
-        log.info("executing Function")
         result = function(*args, **kwargs)
         if type(result) == tuple:
             data, headers = result
@@ -105,7 +123,6 @@ def make_response(function, *args, **kwargs):
         {
             "data": data,
             "status_code": status_code,
-            #"status_message": status_message,
             "timestamp": datetime.now(timezone.utc),
         },
         http_code,

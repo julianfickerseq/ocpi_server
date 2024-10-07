@@ -11,7 +11,7 @@ from __future__ import annotations
 from flask_restx import Namespace, Resource
 from werkzeug.exceptions import BadRequest
 
-from ocpi.managers import CredentialsManager
+from ocpi.managers.credentials import CredentialsManager
 from ocpi.models import resp
 from ocpi.models.credentials import Credentials, add_models_to_credentials_namespace
 from ocpi.namespaces import (
@@ -36,7 +36,7 @@ class credentials(Resource):
         self.credentials_manager = kwargs["credentials"]
         super().__init__(api, *args, **kwargs)
 
-    @token_required
+    @token_required()
     @credentials_ns.marshal_with(resp(credentials_ns, Credentials))
     @credentials_ns.expect(parser)
     def get(self):
@@ -47,7 +47,7 @@ class credentials(Resource):
         decodedToken = _check_access_token()
         return make_response(self.credentials_manager.getCredentials, decodedToken)
 
-    @token_required
+    @token_required()
     @credentials_ns.marshal_with(resp(credentials_ns, Credentials))
     @credentials_ns.expect(parser, Credentials)
     def post(self):
@@ -65,7 +65,7 @@ class credentials(Resource):
             decodedToken,
         )
 
-    @token_required
+    @token_required()
     @credentials_ns.marshal_with(resp(credentials_ns, Credentials))
     @credentials_ns.expect(parser, Credentials)
     def put(self):
@@ -78,7 +78,7 @@ class credentials(Resource):
             self.credentials_manager.versionUpdate, credentials_ns.payload, decodedToken
         )
 
-    @token_required
+    @token_required()
     @credentials_ns.expect(parser)
     def delete(self):
         """

@@ -16,7 +16,7 @@ import logging
 from flask import Blueprint
 from flask_restx import Api
 
-from ocpi.managers import VersionManager
+from ocpi.managers.versions import VersionManager
 from ocpi.namespaces import SingleCredMan
 from ocpi.namespaces.internal import internal_ns
 from ocpi.namespaces.credentials import credentials_ns

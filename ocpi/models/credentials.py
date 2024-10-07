@@ -6,11 +6,26 @@
 """
 
 from __future__ import annotations
-
+from dataclasses import dataclass
 from flask_restx import Model, fields
+from pydantic import BaseModel
 
 from ocpi.models.location import BusinessDetails, Image
-from ocpi.models.types import CaseInsensitiveString, role
+from ocpi.models.types import CaseInsensitiveString, Role, role
+
+@dataclass
+class Allowed():
+    user:str
+    internal:str
+    cpo:str
+    
+@dataclass
+class CredentialsRoleValidator:
+    role: Role 
+    business_details: str
+    party_id: str
+    country_code: str
+        
 
 CredentialsRole = Model(
     "CredentialsRole",
@@ -29,6 +44,12 @@ CredentialsRole = Model(
         ),
     },
 )
+
+@dataclass
+class CredentialsValidator:
+    token: str
+    url: str
+    roles: CredentialsRoleValidator
 
 Credentials = Model(
     "Credentials",

@@ -10,6 +10,7 @@ from __future__ import annotations
 
 from flask_restx import Namespace, Resource, fields
 
+from ocpi.models.credentials import Role
 from ocpi.models import resp, respList, respRaw, respEmpty
 from ocpi.models.sessions import (
     Session,
@@ -21,6 +22,7 @@ from ocpi.namespaces import (
     make_response,
     pagination_parser,
     token_required,
+    get_allowed_locations
 )
 
 sessions_ns = Namespace(name="sessions", validate=True)
@@ -37,17 +39,17 @@ def sender():
 
         @sessions_ns.doc(
             params={
-                "from": {
+                "date_from": {
                     "in": "query",
                     "description": "declare session start point",
-                    "default": "2021-01-01T13:30:00+02:00",
-                    "required": True,
+                    "default": "2000-01-01T00:00:00Z",
+                    "required": False,
                 },
-                "to": {
+                "date_to": {
                     "in": "query",
                     "description": "declare session end point",
-                    "default": "2038-01-01T15:30:00+02:00",
-                    "required": True,
+                    "default": "2099-01-01T00:00:00Z",
+                    "required": False,
                 },
                 "offset": {
                     "in": "query",
@@ -57,13 +59,14 @@ def sender():
                 "limit": {
                     "in": "query",
                     "description": "number of entries to get",
-                    "default": "50",
+                    "default": "100",
                 },
             }
         )
         @sessions_ns.marshal_with(respList(sessions_ns, Session))
-        @token_required()
-        def get(self):
+        @token_required(rolesAllowed=[Role.SCSP,Role.INTERNAL])
+        @get_allowed_locations
+        def get(self,allowed_locations:list|None=None):
             """
             Only Sessions with last_update between the given {date_from} (including) and {date_to} (excluding) will be returned.
             """
@@ -71,10 +74,11 @@ def sender():
             args = parser.parse_args()
             return make_response(
                 self.sessionmanager.getSessions,
-                args["from"],
-                args["to"],
+                args["date_from"],
+                args["date_to"],
                 args["offset"],
                 args["limit"],
+                allowed_locations
             )
 
     return sessions_ns
@@ -116,7 +120,7 @@ def receiver():
             )
 
         @sessions_ns.expect(Session, validate=False)
-        @sessions_ns.marshal_with(respEmpty(sessions_ns), code=201)
+        @sessions_ns.marshal_with(respEmpty(sessions_ns), code=200)
         @token_required()
         def patch(self, country_id, party_id, session_id):
             session_id = session_id.upper()  # caseinsensitive

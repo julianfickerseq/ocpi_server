@@ -29,9 +29,12 @@ from ocpi.namespaces import (
     make_response,
     pagination_parser,
     token_required,
-    SingleCredMan
+    SingleCredMan,
+    is_location_allowed
 )
 import ocpi.exceptions as oe
+from ocpi.models.types import Role
+
 
 from functools import wraps
 
@@ -108,8 +111,9 @@ def receiver():
 
 
 
-        @token_required()
-        @locations_ns.marshal_with(resp(locations_ns, Location), skip_none=True)
+        @token_required(rolesAllowed=[Role.SCSP, Role.CPO])
+        @is_location_allowed
+        @locations_ns.marshal_with(resp(locations_ns, Location), skip_none=True, code=200)
         def get(self, country_code, party_id, location_id):
             """
             Get Location by ID
@@ -121,7 +125,7 @@ def receiver():
 
         @token_required()
         @locations_ns.expect(Location)
-        @locations_ns.marshal_with(respEmpty(locations_ns))
+        @locations_ns.marshal_with(respEmpty(locations_ns), code=201)
         def put(self, country_code, party_id, location_id):
             """
             Add/Replace Location by ID
@@ -137,7 +141,7 @@ def receiver():
 
         @token_required()
         @locations_ns.expect(LocationOptional)
-        @locations_ns.marshal_with(respEmpty(locations_ns))
+        @locations_ns.marshal_with(respEmpty(locations_ns), code=200)
         @location_exists
         def patch(self, country_code, party_id, location_id):
             """
@@ -161,7 +165,7 @@ def receiver():
             self.locationmanager = kwargs["locations"]
             super().__init__(api, *args, **kwargs)
 
-        @locations_ns.marshal_with(resp(locations_ns, EVSE))
+        @locations_ns.marshal_with(resp(locations_ns, EVSE), code=200)
         def get(self, country_code, party_id, location_id, evse_uid):
             return make_response(
                 self.locationmanager.getEVSE,
@@ -173,7 +177,7 @@ def receiver():
 
         @token_required()
         @locations_ns.expect(EVSE)
-        @locations_ns.marshal_with(respEmpty(locations_ns))
+        @locations_ns.marshal_with(respEmpty(locations_ns), code=201)
         @location_exists
         def put(self, country_code, party_id, location_id, evse_uid):
             return make_response(
@@ -187,7 +191,7 @@ def receiver():
 
         @token_required()
         @locations_ns.expect(EVSEOptional)
-        @locations_ns.marshal_with(respEmpty(locations_ns))
+        @locations_ns.marshal_with(respEmpty(locations_ns), code=200)
         @location_exists
         def patch(self, country_code, party_id, location_id, evse_uid):
             return make_response(
@@ -206,7 +210,7 @@ def receiver():
             self.locationmanager = kwargs["locations"]
             super().__init__(api, *args, **kwargs)
 
-        @locations_ns.marshal_with(resp(locations_ns, Connector))
+        @locations_ns.marshal_with(resp(locations_ns, Connector), code=200)
         def get(self, country_code, party_id, location_id, evse_uid, connector_id):
             """
             Get Connector by ID
@@ -222,7 +226,7 @@ def receiver():
 
         @token_required()
         @locations_ns.expect(Connector)
-        @locations_ns.marshal_with(respEmpty(locations_ns))
+        @locations_ns.marshal_with(respEmpty(locations_ns), code=201)
         @location_exists
         def put(self, country_code, party_id, location_id, evse_uid, connector_id):
             """
@@ -240,7 +244,7 @@ def receiver():
         
         @token_required()
         @locations_ns.expect(ConnectorOptional)
-        @locations_ns.marshal_with(respEmpty(locations_ns))
+        @locations_ns.marshal_with(respEmpty(locations_ns), code=200)
         @location_exists
         def patch(self, country_code, party_id, location_id, evse_uid, connector_id):
             """
@@ -294,8 +298,8 @@ def sender():
                 },
             }
         )
-        @locations_ns.marshal_with(respList(locations_ns, Location))
-        @token_required("lala")
+        @locations_ns.marshal_with(respList(locations_ns, Location), code=200)
+        @token_required()
         @locations_ns.header("Link", "Link to the next ressource")
         @locations_ns.header(
             "X-Total-Count",

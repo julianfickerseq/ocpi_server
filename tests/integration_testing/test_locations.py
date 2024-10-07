@@ -17,6 +17,14 @@ def test_get_location(client,headers):
     r_get=client.get("/ocpi/emsp/2.1.1/locations/BE/TEST/89900877",headers=headers)
     assert r_get.status_code==200
     assert data["89900877"]==r_get.json["data"]
+
+def test_get_location_with_user(client):
+    r_get=client.get("/ocpi/emsp/2.1.1/locations/BE/TEST/90321319",headers={"Authorization":"Token usertoken"})
+    assert r_get.status_code==200
+    
+def test_get_location_with_wrong_user(client):
+    r_get=client.get("/ocpi/emsp/2.1.1/locations/BE/TEST/90321319",headers={"Authorization":"Token Wrongusertoken"})
+    assert r_get.status_code==403
     
 def test_get_wrong_location(client,headers):
     r_get=client.get("/ocpi/emsp/2.1.1/locations/BE/TEST/100",headers=headers)
@@ -149,5 +157,4 @@ def test_patch_connector_wrong_evse(client,headers,mock_get_connector):
     r_patch=client.patch("/ocpi/emsp/2.1.1/locations/BE/TEST/89900877/wrong/1",json={"tariff_id": "CHARGING"},headers=headers)
     assert r_patch.json["status_code"]==2003
 """
-
 """

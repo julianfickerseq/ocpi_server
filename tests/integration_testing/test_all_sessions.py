@@ -29,7 +29,6 @@ def test_limit_and_headers_and_offset(client):
     r_get=client.get("/ocpi/emsp/2.1.1/sessions/?limit=10",headers={"Authorization":"Token usertoken"})
     assert len(r_get.json["data"])==10
     assert r_get.json["data"][0]["id"][-1]=="0"
-    print(r_get.headers)
     assert r_get.headers.get("Link")=="http://localhost:1234/ocpi/emsp/2.1.1/sessions/?limit=10&offset=10"
     assert r_get.headers.get("X-Total-Count")=="20"
     assert r_get.headers.get("X-Limit")=="10"
@@ -42,7 +41,6 @@ def test_limit_and_headers_and_offset(client):
 
 def test_date_from_date_to(client):
     r_get=client.get("/ocpi/emsp/2.1.1/sessions/?date_from=2020-01-01T00:00:00Z&date_to=2020-01-01T00:00:01Z",headers={"Authorization":"Token usertoken"})
-    print(r_get.headers)
     assert r_get.status_code==200 and r_get.json["status_code"]==1000
     assert len(r_get.json["data"])==1
     assert r_get.json["data"][0]["id"][-1:]=="0"

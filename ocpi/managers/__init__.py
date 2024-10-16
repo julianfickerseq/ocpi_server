@@ -20,7 +20,6 @@ def recreate_query(limit):
         args["offset"] = int(args.get("offset")) + limit
     else:
         args["offset"] = limit
-    print()
     return "&".join([f"{key}={value}" for key, value in args.items()])
     
 

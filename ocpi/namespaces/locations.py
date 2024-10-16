@@ -48,7 +48,7 @@ log = logging.getLogger("ocpi")
 
 def get_location(headers, url, **kwargs):
     r=requests.get(f'{url.strip("/")}/{kwargs["location_id"]}',headers=headers).json()
-    print(f'getting data from {url.strip("/")}/{kwargs["location_id"]}:\n{r}')
+    log.info(f'getting data from {url.strip("/")}/{kwargs["location_id"]}:\n{r}')
     return r["data"]
     
 def location_exists(f):
@@ -74,7 +74,7 @@ def location_exists(f):
                 self.locationmanager.putLocation(kwargs["country_code"], kwargs["party_id"], kwargs["location_id"], location)
                 return f(self,*args, **kwargs)
             except Exception as e:
-                print(e)
+                log(e)
                 return make_response(raise_error_function,oe.InvalidLocationError)
 
     return decorated

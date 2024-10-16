@@ -112,10 +112,12 @@ def make_response(function, *args, **kwargs):
         else:
             data = result
     except oe.OcpiError as e:
-        log.error(e)
+        log.error(e,args,kwargs)
         status_code = e.status_code
         
-    # except Exception as e:
+    except Exception as e:
+        log.error(e,args,kwargs)
+        raise(e)
     #     log.error(e)
     #     status_code = 3000
 

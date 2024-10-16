@@ -35,7 +35,7 @@ class LocationManager():
             location["_id"]=location["id"]
             self.locations.insert_one(location)
         except:
-            print(f"already exists, patching location_id:{location_id}, with:{location}")
+            log.info(f"already exists, patching location_id:{location_id}, with:{location}")
             self.patchLocation(country_id, party_id, location_id, location)
             
     def patchLocation(self, country_id, party_id, location_id, location):
@@ -61,7 +61,7 @@ class LocationManager():
                 "_id":f"{location_id}-{evse_uid}",
                 "location_id":location_id,"evse_uid":evse_uid,"evse":evse})
         except:
-            print(f"already exists, patching location_id:{location_id}, evse_uid:{evse_uid} with:{evse}")
+            log.info(f"already exists, patching location_id:{location_id}, evse_uid:{evse_uid} with:{evse}")
             self.patchEVSE(country_id, party_id, location_id, evse_uid, evse)
             
     def patchEVSE(self, country_id, party_id, location_id, evse_uid, evse):
@@ -73,7 +73,6 @@ class LocationManager():
     
     def getConnector(self, country_id, party_id, location_id, evse_uid, connector_id):
         connector = self.connectors.find_one({"_id":f"{location_id}-{evse_uid}-{connector_id}"})
-        print(connector)
         if connector==None: raise oe.InvalidLocationError
         return connector["connector"]
         
@@ -84,7 +83,7 @@ class LocationManager():
                 "_id":f"{location_id}-{evse_uid}-{connector_id}",
                 "location_id":location_id,"evse_uid":evse_uid,"connector_id":connector_id,"connector":connector})
         except:
-            print(f"already exists, patching location_id:{location_id}, evse_uid:{evse_uid}, connector_id:{connector_id}, with:{connector}")
+            log.info(f"already exists, patching location_id:{location_id}, evse_uid:{evse_uid}, connector_id:{connector_id}, with:{connector}")
             self.patchConnector(country_id, party_id, location_id, evse_uid, connector_id, connector)
             
     def patchConnector(self, country_id, party_id, location_id, evse_uid, connector_id, connector):

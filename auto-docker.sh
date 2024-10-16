@@ -1,7 +1,8 @@
 #/bin/bash
-VERSION="1.2.7"
+VERSION="2.0.7"
 
-docker build --platform linux/amd64 -t engiecofely/ocpi_server:v$VERSION .
+#docker build --platform linux/amd64 -t engiecofely/ocpi_server:v$VERSION .
+docker build --platform linux/arm64 -t engiecofely/ocpi_server:v$VERSION .
 docker push engiecofely/ocpi_server:v$VERSION
 echo -en "\007"
 

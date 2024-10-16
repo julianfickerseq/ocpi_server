@@ -10,14 +10,15 @@ import ocpi.managers.sessions as sm
 from ocpi.namespaces import SingleCredMan
 
 from flask import Flask, redirect, request
-
+FORMAT='%(asctime)s %(levelname)s: %(message)s'
+logging.basicConfig(format=FORMAT)
 logging.basicConfig(level=logging.DEBUG)
 log = logging.getLogger('ocpi')
 
 if __name__ == '__main__':
     from dotenv import load_dotenv
     load_dotenv()
-    print("dotenv loaded")
+    log.warning("dotenv loaded")
 
 app = Flask(__name__)
 app.config['RESTX_MASK_SWAGGER'] = False
